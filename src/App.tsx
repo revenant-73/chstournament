@@ -1,11 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchRemoteTournamentState, saveRemoteTournamentState } from "./apiClient";
+import { getCurrentRoute } from "./routes";
 import { clearTournamentState, loadTournamentState, saveTournamentState } from "./storage";
 import { findConferenceConflicts, generateInitialPoolMatches, generateInitialPools } from "./tournament/pools";
 import { createDefaultTeams } from "./tournament/setup";
+import { getMatchResult } from "./tournament/scoring";
 import { calculatePoolStandings } from "./tournament/standings";
 import type { Match, PoolId, SetScore, Team, TournamentState } from "./tournament/types";
 
 const pools: PoolId[] = ["A", "B", "C"];
+const adminPinKey = "century-varsity-admin-pin";
 
 function createInitialState(): TournamentState {
   return {
@@ -16,12 +20,82 @@ function createInitialState(): TournamentState {
 }
 
 export default function App() {
+  const route = getCurrentRoute();
+  const isReadOnly = route === "results";
   const [state, setState] = useState<TournamentState>(() => loadTournamentState() ?? createInitialState());
-  const [activeView, setActiveView] = useState<"setup" | "scores" | "pools">("setup");
+  const [activeView, setActiveView] = useState<"setup" | "scores" | "pools">(() => (isReadOnly ? "scores" : "setup"));
+  const [adminPin, setAdminPin] = useState(() => sessionStorage.getItem(adminPinKey) ?? "");
+  const [syncStatus, setSyncStatus] = useState("Local draft");
+  const [lastRemoteUpdate, setLastRemoteUpdate] = useState<string | null>(null);
+  const hasLoadedRemote = useRef(false);
+  const saveTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRemoteState() {
+      try {
+        const remote = await fetchRemoteTournamentState();
+        if (cancelled) {
+          return;
+        }
+        hasLoadedRemote.current = true;
+        if (remote.state) {
+          setState(remote.state);
+          saveTournamentState(remote.state);
+          setLastRemoteUpdate(remote.updatedAt);
+          setSyncStatus(isReadOnly ? "Live results loaded" : "Synced with Turso");
+        } else {
+          setSyncStatus(isReadOnly ? "Waiting for tournament data" : "No hosted data yet");
+        }
+      } catch {
+        hasLoadedRemote.current = true;
+        setSyncStatus(isReadOnly ? "Offline results view" : "Local-only mode");
+      }
+    }
+
+    loadRemoteState();
+    if (isReadOnly) {
+      const interval = window.setInterval(loadRemoteState, 15000);
+      return () => {
+        cancelled = true;
+        window.clearInterval(interval);
+      };
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isReadOnly]);
 
   useEffect(() => {
     saveTournamentState(state);
-  }, [state]);
+
+    if (isReadOnly || !hasLoadedRemote.current || !adminPin.trim()) {
+      return;
+    }
+
+    if (saveTimer.current) {
+      window.clearTimeout(saveTimer.current);
+    }
+
+    saveTimer.current = window.setTimeout(async () => {
+      try {
+        setSyncStatus("Saving to Turso...");
+        const updatedAt = await saveRemoteTournamentState(state, adminPin.trim());
+        setLastRemoteUpdate(updatedAt);
+        setSyncStatus("Saved to Turso");
+      } catch {
+        setSyncStatus("Local changes saved; Turso sync failed");
+      }
+    }, 600);
+
+    return () => {
+      if (saveTimer.current) {
+        window.clearTimeout(saveTimer.current);
+      }
+    };
+  }, [adminPin, isReadOnly, state]);
 
   const teamsById = useMemo(() => new Map(state.teams.map((team) => [team.id, team])), [state.teams]);
   const conferenceConflicts = useMemo(() => findConferenceConflicts(state.teams), [state.teams]);
@@ -70,29 +144,59 @@ export default function App() {
     setActiveView("setup");
   }
 
+  function rememberAdminPin(value: string) {
+    setAdminPin(value);
+    if (value.trim()) {
+      sessionStorage.setItem(adminPinKey, value.trim());
+    } else {
+      sessionStorage.removeItem(adminPinKey);
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="masthead">
         <div>
           <p className="eyebrow">Century Volleyball</p>
-          <h1>Varsity Tournament Control</h1>
+          <h1>{isReadOnly ? "Tournament Results" : "Varsity Tournament Control"}</h1>
         </div>
-        <div className="stage-pill">{state.stage.replace("_", " ")}</div>
+        <div className="status-stack">
+          <div className="stage-pill">{state.stage.replace("_", " ")}</div>
+          <div className="sync-pill">{syncStatus}</div>
+          {lastRemoteUpdate && <div className="sync-time">Updated {new Date(lastRemoteUpdate).toLocaleTimeString()}</div>}
+        </div>
       </header>
 
+      {!isReadOnly && (
+        <section className="admin-bar">
+          <label>
+            Admin PIN
+            <input
+              type="password"
+              value={adminPin}
+              placeholder="Required for hosted saves"
+              onChange={(event) => rememberAdminPin(event.target.value)}
+            />
+          </label>
+          <a href="/results">Open public results</a>
+        </section>
+      )}
+
       <nav className="tabs" aria-label="Primary views">
-        <button className={activeView === "setup" ? "active" : ""} onClick={() => setActiveView("setup")}>
-          Setup
-        </button>
+        {!isReadOnly && (
+          <button className={activeView === "setup" ? "active" : ""} onClick={() => setActiveView("setup")}>
+            Setup
+          </button>
+        )}
         <button className={activeView === "scores" ? "active" : ""} onClick={() => setActiveView("scores")}>
-          Scores
+          {isReadOnly ? "Schedule" : "Scores"}
         </button>
         <button className={activeView === "pools" ? "active" : ""} onClick={() => setActiveView("pools")}>
           Pools
         </button>
       </nav>
 
-      {activeView === "setup" && (
+      {!isReadOnly && activeView === "setup" && (
         <SetupView
           teams={state.teams}
           hasGeneratedPools={hasGeneratedPools}
@@ -104,7 +208,12 @@ export default function App() {
       )}
 
       {activeView === "scores" && (
-        <ScoresView matches={sortedMatches(state.matches)} teamsById={teamsById} onScoreChange={updateSetScore} />
+        <ScoresView
+          matches={sortedMatches(state.matches)}
+          teamsById={teamsById}
+          isReadOnly={isReadOnly}
+          onScoreChange={updateSetScore}
+        />
       )}
 
       {activeView === "pools" && <PoolsView teams={state.teams} matches={state.matches} />}
@@ -204,10 +313,11 @@ function SetupView({
 interface ScoresViewProps {
   matches: Match[];
   teamsById: Map<string, Team>;
+  isReadOnly: boolean;
   onScoreChange: (matchId: string, setIndex: number, side: keyof SetScore, value: string) => void;
 }
 
-function ScoresView({ matches, teamsById, onScoreChange }: ScoresViewProps) {
+function ScoresView({ matches, teamsById, isReadOnly, onScoreChange }: ScoresViewProps) {
   if (!matches.length) {
     return <EmptyState title="No Matches Yet" detail="Generate initial pools from Setup to create the 8:00, 9:00, and 10:00 AM rounds." />;
   }
@@ -224,8 +334,21 @@ function ScoresView({ matches, teamsById, onScoreChange }: ScoresViewProps) {
               {match.scheduledTime} · {match.label}
             </span>
           </div>
-          <ScoreLine match={match} teamId={match.teamAId} team={teamsById.get(match.teamAId)} side="teamA" onScoreChange={onScoreChange} />
-          <ScoreLine match={match} teamId={match.teamBId} team={teamsById.get(match.teamBId)} side="teamB" onScoreChange={onScoreChange} />
+          <ScoreLine
+            match={match}
+            team={teamsById.get(match.teamAId)}
+            side="teamA"
+            isReadOnly={isReadOnly}
+            onScoreChange={onScoreChange}
+          />
+          <ScoreLine
+            match={match}
+            team={teamsById.get(match.teamBId)}
+            side="teamB"
+            isReadOnly={isReadOnly}
+            onScoreChange={onScoreChange}
+          />
+          <MatchOutcome match={match} teamsById={teamsById} />
           <p className="work-team">Work team: {match.workTeamId ? teamsById.get(match.workTeamId)?.name : "TBD"}</p>
         </article>
       ))}
@@ -235,30 +358,43 @@ function ScoresView({ matches, teamsById, onScoreChange }: ScoresViewProps) {
 
 interface ScoreLineProps {
   match: Match;
-  teamId: string;
   team?: Team;
   side: keyof SetScore;
+  isReadOnly: boolean;
   onScoreChange: (matchId: string, setIndex: number, side: keyof SetScore, value: string) => void;
 }
 
-function ScoreLine({ match, team, side, onScoreChange }: ScoreLineProps) {
+function ScoreLine({ match, team, side, isReadOnly, onScoreChange }: ScoreLineProps) {
   return (
-    <div className="score-line">
+    <div className={isReadOnly ? "score-line read-only" : "score-line"}>
       <div className="team-name">{team?.name ?? "Unknown team"}</div>
       {match.sets.map((set, index) => (
         <label key={index}>
           Set {index + 1}
-          <input
-            inputMode="numeric"
-            type="number"
-            min="0"
-            value={set[side] ?? ""}
-            onChange={(event) => onScoreChange(match.id, index, side, event.target.value)}
-          />
+          {isReadOnly ? (
+            <span className="score-box">{set[side] ?? "-"}</span>
+          ) : (
+            <input
+              inputMode="numeric"
+              type="number"
+              min="0"
+              value={set[side] ?? ""}
+              onChange={(event) => onScoreChange(match.id, index, side, event.target.value)}
+            />
+          )}
         </label>
       ))}
     </div>
   );
+}
+
+function MatchOutcome({ match, teamsById }: { match: Match; teamsById: Map<string, Team> }) {
+  const result = getMatchResult(match);
+  if (!result) {
+    return <p className="match-outcome">Result pending</p>;
+  }
+
+  return <p className="match-outcome">Winner: {teamsById.get(result.winnerId)?.name ?? "TBD"}</p>;
 }
 
 function PoolsView({ teams, matches }: { teams: Team[]; matches: Match[] }) {
