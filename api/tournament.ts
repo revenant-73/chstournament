@@ -1,10 +1,16 @@
 import { createClient } from "@libsql/client";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/libsql";
-import { tournamentSnapshots } from "./schema";
+import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 const tournamentId = "century-varsity-2026";
+
+const tournamentSnapshots = sqliteTable("tournament_snapshots", {
+  id: text("id").primaryKey(),
+  stateJson: text("state_json").notNull(),
+  updatedAt: text("updated_at").notNull()
+});
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   setCorsHeaders(response);
@@ -87,7 +93,7 @@ function createDatabase() {
 }
 
 async function ensureSchema(db: ReturnType<typeof createDatabase>) {
-  await db.run(`
+  await db.run(sql`
     create table if not exists tournament_snapshots (
       id text primary key not null,
       state_json text not null,
