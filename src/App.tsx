@@ -153,12 +153,23 @@ export default function App() {
     }
   }
 
+  if (isReadOnly) {
+    return (
+      <PublicResultsView
+        state={state}
+        teamsById={teamsById}
+        syncStatus={syncStatus}
+        lastRemoteUpdate={lastRemoteUpdate}
+      />
+    );
+  }
+
   return (
     <main className="app-shell">
       <header className="masthead">
         <div>
           <p className="eyebrow">Century Volleyball</p>
-          <h1>{isReadOnly ? "Tournament Results" : "Varsity Tournament Control"}</h1>
+          <h1>Varsity Tournament Control</h1>
         </div>
         <div className="status-stack">
           <div className="stage-pill">{state.stage.replace("_", " ")}</div>
@@ -167,36 +178,32 @@ export default function App() {
         </div>
       </header>
 
-      {!isReadOnly && (
-        <section className="admin-bar">
-          <label>
-            Admin PIN
-            <input
-              type="password"
-              value={adminPin}
-              placeholder="Required for hosted saves"
-              onChange={(event) => rememberAdminPin(event.target.value)}
-            />
-          </label>
-          <a href="/results">Open public results</a>
-        </section>
-      )}
+      <section className="admin-bar">
+        <label>
+          Admin PIN
+          <input
+            type="password"
+            value={adminPin}
+            placeholder="Required for hosted saves"
+            onChange={(event) => rememberAdminPin(event.target.value)}
+          />
+        </label>
+        <a href="/results">Open public results</a>
+      </section>
 
       <nav className="tabs" aria-label="Primary views">
-        {!isReadOnly && (
-          <button className={activeView === "setup" ? "active" : ""} onClick={() => setActiveView("setup")}>
-            Setup
-          </button>
-        )}
+        <button className={activeView === "setup" ? "active" : ""} onClick={() => setActiveView("setup")}>
+          Setup
+        </button>
         <button className={activeView === "scores" ? "active" : ""} onClick={() => setActiveView("scores")}>
-          {isReadOnly ? "Schedule" : "Scores"}
+          Scores
         </button>
         <button className={activeView === "pools" ? "active" : ""} onClick={() => setActiveView("pools")}>
           Pools
         </button>
       </nav>
 
-      {!isReadOnly && activeView === "setup" && (
+      {activeView === "setup" && (
         <SetupView
           teams={state.teams}
           hasGeneratedPools={hasGeneratedPools}
@@ -218,6 +225,99 @@ export default function App() {
 
       {activeView === "pools" && <PoolsView teams={state.teams} matches={state.matches} />}
     </main>
+  );
+}
+
+function PublicResultsView({
+  state,
+  teamsById,
+  syncStatus,
+  lastRemoteUpdate
+}: {
+  state: TournamentState;
+  teamsById: Map<string, Team>;
+  syncStatus: string;
+  lastRemoteUpdate: string | null;
+}) {
+  const matches = sortedMatches(state.matches);
+  const hasPools = state.teams.every((team) => team.pool);
+
+  return (
+    <main className="app-shell public-shell">
+      <header className="public-header">
+        <div>
+          <p className="eyebrow">Century Volleyball</p>
+          <h1>Schedule</h1>
+        </div>
+        <div className="public-status">
+          <strong>{state.stage.replace("_", " ")}</strong>
+          <span>{getPublicSyncLabel(syncStatus)}</span>
+          {lastRemoteUpdate && <span>Updated {new Date(lastRemoteUpdate).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>}
+        </div>
+      </header>
+
+      <section className="parent-note">
+        <strong>Find your court, then the time.</strong>
+        <span>Work team means that team is helping officiate, not playing.</span>
+      </section>
+
+      <section className="public-section">
+        <div className="section-title-row">
+          <h2>Schedule & Results</h2>
+          <span>{matches.length ? `${matches.length} pool matches` : "Schedule pending"}</span>
+        </div>
+        {matches.length ? (
+          <div className="public-rounds">
+            {groupMatchesByRound(matches).map(([round, roundMatches]) => (
+              <article className="round-strip" key={round}>
+                <div className="round-heading">
+                  <strong>Round {round}</strong>
+                  <span>{roundMatches[0]?.scheduledTime}</span>
+                </div>
+                <div className="court-strip">
+                  {roundMatches.map((match) => (
+                    <PublicMatchCard key={match.id} match={match} teamsById={teamsById} />
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="Schedule Not Posted Yet" detail="Tournament staff will post court assignments after pools are generated." />
+        )}
+      </section>
+
+      {hasPools && (
+        <details className="public-standings">
+          <summary>Pool standings</summary>
+          <PoolsView teams={state.teams} matches={state.matches} />
+        </details>
+      )}
+    </main>
+  );
+}
+
+function PublicMatchCard({ match, teamsById }: { match: Match; teamsById: Map<string, Team> }) {
+  const result = getMatchResult(match);
+  const teamA = teamsById.get(match.teamAId);
+  const teamB = teamsById.get(match.teamBId);
+  const winnerName = result ? teamsById.get(result.winnerId)?.name : null;
+  const scoreText = getScoreText(match);
+
+  return (
+    <div className={result ? "public-match complete" : "public-match"}>
+      <div className="public-court">Court {match.court}</div>
+      <div className="public-teams">
+        <span className={result?.winnerId === match.teamAId ? "winner" : ""}>{teamA?.name ?? "TBD"}</span>
+        <span className="versus">vs</span>
+        <span className={result?.winnerId === match.teamBId ? "winner" : ""}>{teamB?.name ?? "TBD"}</span>
+      </div>
+      <div className="public-match-footer">
+        <span>{result ? `Final: ${winnerName}` : "Upcoming"}</span>
+        <span>{scoreText}</span>
+      </div>
+      <div className="public-worker">Work: {match.workTeamId ? teamsById.get(match.workTeamId)?.name : "TBD"}</div>
+    </div>
   );
 }
 
@@ -452,4 +552,35 @@ function EmptyState({ title, detail }: { title: string; detail: string }) {
 
 function sortedMatches(matches: Match[]): Match[] {
   return matches.slice().sort((a, b) => a.round - b.round || a.court - b.court);
+}
+
+function groupMatchesByRound(matches: Match[]): Array<[number, Match[]]> {
+  const grouped = new Map<number, Match[]>();
+  for (const match of matches) {
+    grouped.set(match.round, [...(grouped.get(match.round) ?? []), match]);
+  }
+
+  return [...grouped.entries()].map(([round, roundMatches]) => [
+    round,
+    roundMatches.slice().sort((a, b) => a.court - b.court)
+  ]);
+}
+
+function getScoreText(match: Match): string {
+  const playedSets = match.sets.filter((set) => set.teamA !== null && set.teamB !== null);
+  if (!playedSets.length) {
+    return "No score";
+  }
+
+  return playedSets.map((set) => `${set.teamA}-${set.teamB}`).join(", ");
+}
+
+function getPublicSyncLabel(syncStatus: string): string {
+  if (syncStatus.toLowerCase().includes("offline")) {
+    return "Offline";
+  }
+  if (syncStatus.toLowerCase().includes("waiting")) {
+    return "Waiting";
+  }
+  return "Live";
 }
