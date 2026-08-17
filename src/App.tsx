@@ -3,6 +3,7 @@ import { fetchRemoteTournamentState, saveRemoteTournamentState } from "./apiClie
 import { getCurrentRoute } from "./routes";
 import { clearTournamentState, loadTournamentState, saveTournamentState } from "./storage";
 import { findConferenceConflicts, generateInitialPoolMatches, generateInitialPools } from "./tournament/pools";
+import { arePoolPlayMatchesComplete, generateQualifierMatches } from "./tournament/qualifiers";
 import { createDefaultTeams } from "./tournament/setup";
 import { getMatchResult } from "./tournament/scoring";
 import { calculatePoolStandings } from "./tournament/standings";
@@ -100,6 +101,8 @@ export default function App() {
   const teamsById = useMemo(() => new Map(state.teams.map((team) => [team.id, team])), [state.teams]);
   const conferenceConflicts = useMemo(() => findConferenceConflicts(state.teams), [state.teams]);
   const hasGeneratedPools = state.teams.every((team) => team.pool);
+  const poolPlayComplete = useMemo(() => arePoolPlayMatchesComplete(state.matches), [state.matches]);
+  const hasQualifierMatches = state.matches.some((match) => match.round === 4);
 
   function updateTeam(teamId: string, patch: Partial<Team>) {
     setState((current) => ({
@@ -142,6 +145,26 @@ export default function App() {
     clearTournamentState();
     setState(createInitialState());
     setActiveView("setup");
+  }
+
+  function generateQualifiers() {
+    setState((current) => {
+      if (current.matches.some((match) => match.round === 4)) {
+        return current;
+      }
+
+      const qualifierMatches = generateQualifierMatches(current.teams, current.matches);
+      if (!qualifierMatches.length) {
+        return current;
+      }
+
+      return {
+        ...current,
+        stage: "QUALIFIER",
+        matches: [...current.matches, ...qualifierMatches]
+      };
+    });
+    setActiveView("scores");
   }
 
   function rememberAdminPin(value: string) {
@@ -215,16 +238,52 @@ export default function App() {
       )}
 
       {activeView === "scores" && (
-        <ScoresView
-          matches={sortedMatches(state.matches)}
-          teamsById={teamsById}
-          isReadOnly={isReadOnly}
-          onScoreChange={updateSetScore}
-        />
+        <>
+          <ProgressionPanel
+            poolPlayComplete={poolPlayComplete}
+            hasQualifierMatches={hasQualifierMatches}
+            onGenerateQualifiers={generateQualifiers}
+          />
+          <ScoresView
+            matches={sortedMatches(state.matches)}
+            teamsById={teamsById}
+            isReadOnly={isReadOnly}
+            onScoreChange={updateSetScore}
+          />
+        </>
       )}
 
       {activeView === "pools" && <PoolsView teams={state.teams} matches={state.matches} />}
     </main>
+  );
+}
+
+function ProgressionPanel({
+  poolPlayComplete,
+  hasQualifierMatches,
+  onGenerateQualifiers
+}: {
+  poolPlayComplete: boolean;
+  hasQualifierMatches: boolean;
+  onGenerateQualifiers: () => void;
+}) {
+  return (
+    <section className="progression-panel">
+      <div>
+        <p className="eyebrow">Next Step</p>
+        <h2>11:00 AM Qualifier Crossovers</h2>
+        <p>
+          {hasQualifierMatches
+            ? "Round 4 has been added to the schedule."
+            : poolPlayComplete
+              ? "Pool play is complete. Generate A2/B3, B2/C3, and C2/A3."
+              : "Enter all nine pool-play scores before Round 4 can be generated."}
+        </p>
+      </div>
+      <button disabled={!poolPlayComplete || hasQualifierMatches} onClick={onGenerateQualifiers}>
+        {hasQualifierMatches ? "Qualifiers Added" : "Generate Qualifiers"}
+      </button>
+    </section>
   );
 }
 

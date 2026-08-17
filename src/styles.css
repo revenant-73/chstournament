@@ -43,6 +43,11 @@ button.secondary {
   background: #2a3035;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .app-shell {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
@@ -324,6 +329,28 @@ button.secondary {
   text-decoration: none;
 }
 
+.progression-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(32, 199, 201, 0.24);
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: rgba(32, 199, 201, 0.07);
+}
+
+.progression-panel h2,
+.progression-panel p {
+  margin: 0;
+}
+
+.progression-panel p:not(.eyebrow) {
+  color: #b8c1c6;
+  font-weight: 700;
+}
+
 .tabs {
   display: flex;
   gap: 8px;
@@ -583,7 +610,8 @@ select {
 
   .masthead,
   .panel-heading,
-  .admin-bar {
+  .admin-bar,
+  .progression-panel {
     align-items: stretch;
     flex-direction: column;
   }

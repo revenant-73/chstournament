@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateInitialPoolMatches, generateInitialPools } from "./pools";
+import { arePoolPlayMatchesComplete, generateQualifierMatches, getPoolFinishers } from "./qualifiers";
 import { getMatchResult } from "./scoring";
 import { createDefaultTeams } from "./setup";
 import { calculatePoolStandings } from "./standings";
@@ -130,6 +131,33 @@ describe("pool standings", () => {
   });
 });
 
+describe("qualifier crossovers", () => {
+  it("does not generate qualifier matches until all pool-play scores are complete", () => {
+    const teams = generateInitialPools(createDefaultTeams());
+    const matches = generateInitialPoolMatches(teams);
+
+    expect(arePoolPlayMatchesComplete(matches)).toBe(false);
+    expect(generateQualifierMatches(teams, matches)).toEqual([]);
+  });
+
+  it("generates Round 4 from A/B/C pool finishers with correct work teams", () => {
+    const teams = generateInitialPools(createDefaultTeams());
+    const matches = completedPoolPlayMatches(teams);
+    const finishers = getPoolFinishers(teams, matches);
+    const qualifiers = generateQualifierMatches(teams, matches);
+
+    expect(arePoolPlayMatchesComplete(matches)).toBe(true);
+    expect(finishers.A.map((team) => team.originalSeed)).toEqual([1, 6, 7]);
+    expect(finishers.B.map((team) => team.originalSeed)).toEqual([2, 5, 8]);
+    expect(finishers.C.map((team) => team.originalSeed)).toEqual([3, 4, 9]);
+    expect(qualifiers).toHaveLength(3);
+    expect(qualifiers.map((match) => match.scheduledTime)).toEqual(["11:00 AM", "11:00 AM", "11:00 AM"]);
+    expect(matchSeeds(qualifiers[0], teams)).toEqual({ teamA: 6, teamB: 8, workTeam: 1 });
+    expect(matchSeeds(qualifiers[1], teams)).toEqual({ teamA: 5, teamB: 9, workTeam: 2 });
+    expect(matchSeeds(qualifiers[2], teams)).toEqual({ teamA: 4, teamB: 7, workTeam: 3 });
+  });
+});
+
 function seedsInPool(teams: Team[], pool: PoolId): number[] {
   return teams.filter((team) => team.pool === pool).map((team) => team.originalSeed);
 }
@@ -147,4 +175,20 @@ function withSets(match: Match, scores: Array<[number, number]>): Match {
     ...match,
     sets: scores.map(([teamA, teamB]) => ({ teamA, teamB }))
   };
+}
+
+function completedPoolPlayMatches(teams: Team[]): Match[] {
+  return generateInitialPoolMatches(teams).map((match) => {
+    const teamASeed = teams.find((team) => team.id === match.teamAId)?.originalSeed ?? 99;
+    const teamBSeed = teams.find((team) => team.id === match.teamBId)?.originalSeed ?? 99;
+    return teamASeed < teamBSeed
+      ? withSets(match, [
+          [25, 18],
+          [25, 18]
+        ])
+      : withSets(match, [
+          [18, 25],
+          [18, 25]
+        ]);
+  });
 }
