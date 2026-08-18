@@ -868,6 +868,8 @@ function PublicResultsView({
   const hasPools = state.teams.every((team) => team.pool);
   const finalPlacements = getFinalPlacements(state.teams, state.matches);
   const publicRounds = getPublicScheduleRounds(matches);
+  const postedRounds = publicRounds.filter((round) => round.kind === "actual");
+  const previewRounds = publicRounds.filter((round): round is PublicPreviewRoundData => round.kind === "preview");
   const previewMatchCount = publicRounds.reduce(
     (total, round) => total + (round.kind === "preview" ? round.matches.length : 0),
     0
@@ -904,13 +906,10 @@ function PublicResultsView({
         </div>
         {matches.length ? (
           <div className="public-rounds">
-            {publicRounds.map((round) =>
-              round.kind === "actual" ? (
-                <PublicActualRound key={round.round} round={round.round} matches={round.matches} teamsById={teamsById} />
-              ) : (
-                <PublicPreviewRound key={round.round} round={round} />
-              )
-            )}
+            {postedRounds.map((round) => (
+              <PublicActualRound key={round.round} round={round.round} matches={round.matches} teamsById={teamsById} />
+            ))}
+            {previewRounds.length > 0 && <PublicFlowPreviewSection rounds={previewRounds} />}
           </div>
         ) : (
           <EmptyState title="Schedule Not Posted Yet" detail="Tournament staff will post court assignments after pools are generated." />
@@ -924,6 +923,24 @@ function PublicResultsView({
         </details>
       )}
     </main>
+  );
+}
+
+function PublicFlowPreviewSection({ rounds }: { rounds: PublicPreviewRoundData[] }) {
+  const previewMatchCount = rounds.reduce((total, round) => total + round.matches.length, 0);
+
+  return (
+    <details className="public-flow-preview" open>
+      <summary>
+        <span>Tournament flow after pool play</span>
+        <small>{previewMatchCount} preview matches</small>
+      </summary>
+      <div className="public-rounds public-flow-rounds">
+        {rounds.map((round) => (
+          <PublicPreviewRound key={round.round} round={round} />
+        ))}
+      </div>
+    </details>
   );
 }
 

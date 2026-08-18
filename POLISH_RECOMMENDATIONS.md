@@ -7,10 +7,12 @@ Parent-facing clarity is the main opportunity from here. The app should help som
 1. Public Now / Next band
    - Show each court's current match and next match at the top of the public page.
    - This helps parents, coaches, and players avoid scanning the full schedule first.
+   - Status: implemented.
 
 2. Collapsible future-flow section
    - Keep Rounds 1-3 expanded.
    - Group the Round 4-7 preview cards under a clear tournament-flow section to reduce mobile scrolling.
+   - Status: implemented.
 
 3. QR-code printable page
    - Add a simple page with the public results URL and a QR code for posting at check-in or near courts.

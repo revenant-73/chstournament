@@ -248,6 +248,38 @@ button:disabled {
   gap: 8px;
 }
 
+.public-flow-preview {
+  border: 1px dashed rgba(207, 213, 216, 0.2);
+  border-radius: 8px;
+  background: rgba(14, 18, 20, 0.48);
+}
+
+.public-flow-preview summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 12px;
+  color: #f8fbfb;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.public-flow-preview summary small {
+  color: #b8c1c6;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.public-flow-rounds {
+  padding: 0 6px 6px;
+}
+
+.public-flow-preview:not([open]) .public-flow-rounds {
+  display: none;
+}
+
 .round-strip {
   display: grid;
   grid-template-columns: 82px 1fr;
