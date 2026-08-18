@@ -135,15 +135,27 @@ export function generateRoundSevenMatches(teams: Team[], matches: Match[]): Matc
     return [];
   }
 
+  const championshipTeamA = teamsById.get(semifinalOneResult.winnerId);
+  const championshipTeamB = teamsById.get(semifinalTwoResult.winnerId);
+  const thirdPlaceTeamA = teamsById.get(semifinalOneResult.loserId);
+  const thirdPlaceTeamB = teamsById.get(semifinalTwoResult.loserId);
+  const fifthPlaceTeamA = teamsById.get(roundFiveCourtOneResult.loserId);
+  const fifthPlaceTeamB = teamsById.get(roundFiveCourtTwoResult.loserId);
+  const roundSevenTeamIds = new Set(
+    [championshipTeamA, championshipTeamB, thirdPlaceTeamA, thirdPlaceTeamB, fifthPlaceTeamA, fifthPlaceTeamB]
+      .filter((team): team is Team => Boolean(team))
+      .map((team) => team.id)
+  );
+
   return [
     createScheduledMatch(
       "final-round-7-court-1",
       7,
       1,
       "Championship",
-      teamsById.get(semifinalOneResult.winnerId),
-      teamsById.get(semifinalTwoResult.winnerId),
-      undefined,
+      championshipTeamA,
+      championshipTeamB,
+      getAvailableSameCourtWorker(roundSixMatches[0], teamsById, roundSevenTeamIds),
       "2:00 PM"
     ),
     createScheduledMatch(
@@ -151,9 +163,9 @@ export function generateRoundSevenMatches(teams: Team[], matches: Match[]): Matc
       7,
       2,
       "3rd Place",
-      teamsById.get(semifinalOneResult.loserId),
-      teamsById.get(semifinalTwoResult.loserId),
-      undefined,
+      thirdPlaceTeamA,
+      thirdPlaceTeamB,
+      getAvailableSameCourtWorker(roundSixMatches[1], teamsById, roundSevenTeamIds),
       "2:00 PM"
     ),
     createScheduledMatch(
@@ -161,9 +173,9 @@ export function generateRoundSevenMatches(teams: Team[], matches: Match[]): Matc
       7,
       3,
       "5th Place",
-      teamsById.get(roundFiveCourtOneResult.loserId),
-      teamsById.get(roundFiveCourtTwoResult.loserId),
-      undefined,
+      fifthPlaceTeamA,
+      fifthPlaceTeamB,
+      getAvailableSameCourtWorker(roundSixMatches[2], teamsById, roundSevenTeamIds),
       "2:00 PM"
     )
   ].filter((match): match is Match => Boolean(match));
@@ -264,4 +276,13 @@ function getRoundFiveMatches(matches: Match[]): Match[] {
 
 function getRoundSixMatches(matches: Match[]): Match[] {
   return matches.filter((match) => match.round === 6).sort((a, b) => a.court - b.court);
+}
+
+function getAvailableSameCourtWorker(match: Match, teamsById: Map<string, Team>, unavailableTeamIds: Set<string>): Team | undefined {
+  const result = getMatchResult(match);
+  if (!result || unavailableTeamIds.has(result.loserId)) {
+    return undefined;
+  }
+
+  return teamsById.get(result.loserId);
 }

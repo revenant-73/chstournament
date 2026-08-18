@@ -216,7 +216,7 @@ describe("final bracket reseeding", () => {
     expect(roundSevenMatches.map((match) => match.label)).toEqual(["Championship", "3rd Place", "5th Place"]);
     expect(matchSeeds(roundSevenMatches[0], teams)).toEqual({ teamA: 1, teamB: 2, workTeam: undefined });
     expect(matchSeeds(roundSevenMatches[1], teams)).toEqual({ teamA: 4, teamB: 3, workTeam: undefined });
-    expect(matchSeeds(roundSevenMatches[2], teams)).toEqual({ teamA: 6, teamB: 5, workTeam: undefined });
+    expect(matchSeeds(roundSevenMatches[2], teams)).toEqual({ teamA: 6, teamB: 5, workTeam: 8 });
   });
 });
 
