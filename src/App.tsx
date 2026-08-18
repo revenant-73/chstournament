@@ -872,6 +872,7 @@ function PublicResultsView({
     (total, round) => total + (round.kind === "preview" ? round.matches.length : 0),
     0
   );
+  const publicCourtStatuses = getCourtStatuses(matches);
 
   return (
     <main className="app-shell public-shell">
@@ -891,6 +892,8 @@ function PublicResultsView({
         <strong>Find your court, then the time.</strong>
         <span>Work team means that team is helping officiate, not playing.</span>
       </section>
+
+      {matches.length > 0 && <PublicNowNextBand courtStatuses={publicCourtStatuses} teamsById={teamsById} />}
 
       {finalPlacements.length === 9 && <FinalStandingsPanel placements={finalPlacements} />}
 
@@ -921,6 +924,66 @@ function PublicResultsView({
         </details>
       )}
     </main>
+  );
+}
+
+function PublicNowNextBand({ courtStatuses, teamsById }: { courtStatuses: ReturnType<typeof getCourtStatuses>; teamsById: Map<string, Team> }) {
+  return (
+    <section className="public-now-next" aria-label="Current and next matches by court">
+      <div className="section-title-row">
+        <h2>Now / Next</h2>
+        <span>By court</span>
+      </div>
+      <div className="public-court-status-grid">
+        {courtStatuses.map((status) => (
+          <article className="public-court-status" key={status.court}>
+            <div className="public-court-status-head">
+              <strong>Court {status.court}</strong>
+              <span>
+                {status.completedCount}/{status.totalCount} complete
+              </span>
+            </div>
+            <PublicCourtStatusLine title="Now" match={status.currentMatch} teamsById={teamsById} fallback="Done for now" />
+            <PublicCourtStatusLine title="Next" match={status.nextMatch} teamsById={teamsById} fallback="No later match posted" />
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PublicCourtStatusLine({
+  title,
+  match,
+  teamsById,
+  fallback
+}: {
+  title: string;
+  match?: Match;
+  teamsById: Map<string, Team>;
+  fallback: string;
+}) {
+  if (!match) {
+    return (
+      <div className="public-court-status-line muted">
+        <span>{title}</span>
+        <strong>{fallback}</strong>
+      </div>
+    );
+  }
+
+  const teamA = teamsById.get(match.teamAId)?.name ?? "TBD";
+  const teamB = teamsById.get(match.teamBId)?.name ?? "TBD";
+
+  return (
+    <div className="public-court-status-line">
+      <span>
+        {title} · R{match.round} · {match.scheduledTime}
+      </span>
+      <strong>
+        {teamA} vs {teamB}
+      </strong>
+    </div>
   );
 }
 
