@@ -842,6 +842,11 @@ select {
     width: min(100% - 12px, 980px);
   }
 
+  .public-header {
+    margin: 0 0 8px;
+    padding: 10px 0 8px;
+  }
+
   .parent-note {
     display: grid;
     gap: 3px;
