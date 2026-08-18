@@ -37,7 +37,7 @@ export default function App() {
   const route = getCurrentRoute();
   const isReadOnly = route === "results";
   const [state, setState] = useState<TournamentState>(() => loadTournamentState() ?? createInitialState());
-  const [activeView, setActiveView] = useState<"dashboard" | "setup" | "scores" | "pools">(() =>
+  const [activeView, setActiveView] = useState<"dashboard" | "setup" | "scores" | "pools" | "bracket">(() =>
     isReadOnly ? "scores" : "dashboard"
   );
   const [adminPin, setAdminPin] = useState(() => sessionStorage.getItem(adminPinKey) ?? "");
@@ -370,6 +370,9 @@ export default function App() {
         <button className={activeView === "pools" ? "active" : ""} onClick={() => setActiveView("pools")}>
           Pools
         </button>
+        <button className={activeView === "bracket" ? "active" : ""} onClick={() => setActiveView("bracket")}>
+          Bracket
+        </button>
       </nav>
 
       {activeView === "dashboard" && <DashboardView courtStatuses={courtStatuses} teamsById={teamsById} />}
@@ -414,6 +417,15 @@ export default function App() {
       )}
 
       {activeView === "pools" && <PoolsView teams={state.teams} matches={state.matches} />}
+
+      {activeView === "bracket" && (
+        <BracketView
+          matches={state.matches}
+          teamsById={teamsById}
+          seededTeams={seededTeams}
+          finalPlacements={finalPlacements}
+        />
+      )}
     </main>
   );
 }
@@ -484,6 +496,84 @@ function DashboardMatchBlock({
       </div>
       <div className="dashboard-work">Work: {worker}</div>
     </div>
+  );
+}
+
+function BracketView({
+  matches,
+  teamsById,
+  seededTeams,
+  finalPlacements
+}: {
+  matches: Match[];
+  teamsById: Map<string, Team>;
+  seededTeams: Array<{ seed: number; team: Team; standing: TeamStanding }>;
+  finalPlacements: Array<{ place: number; team: Team; source: string }>;
+}) {
+  const bracketRounds = [
+    { round: 4, title: "Qualifiers", detail: "11:00 AM crossovers" },
+    { round: 5, title: "Round 5", detail: "12:00 PM bracket openers" },
+    { round: 6, title: "Round 6", detail: "1:00 PM semifinals" },
+    { round: 7, title: "Round 7", detail: "2:00 PM placements" }
+  ];
+  const hasBracketMatches = matches.some((match) => match.round >= 4);
+
+  if (!hasBracketMatches) {
+    return <EmptyState title="Bracket Not Generated Yet" detail="Complete pool play, then generate qualifiers from Scores." />;
+  }
+
+  return (
+    <section className="bracket-view">
+      {seededTeams.length === 9 && <ReseedingPanel seededTeams={seededTeams} />}
+      {finalPlacements.length === 9 && <FinalStandingsPanel placements={finalPlacements} />}
+      <div className="bracket-grid">
+        {bracketRounds.map((round) => {
+          const roundMatches = matches
+            .filter((match) => match.round === round.round)
+            .sort((a, b) => a.court - b.court);
+
+          return (
+            <section className="bracket-column" key={round.round}>
+              <div className="bracket-column-header">
+                <h2>{round.title}</h2>
+                <span>{round.detail}</span>
+              </div>
+              {roundMatches.length ? (
+                roundMatches.map((match) => <BracketMatchCard key={match.id} match={match} teamsById={teamsById} />)
+              ) : (
+                <div className="bracket-placeholder">Pending</div>
+              )}
+            </section>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function BracketMatchCard({ match, teamsById }: { match: Match; teamsById: Map<string, Team> }) {
+  const result = getMatchResult(match);
+  const teamA = teamsById.get(match.teamAId);
+  const teamB = teamsById.get(match.teamBId);
+  const worker = match.workTeamId ? teamsById.get(match.workTeamId)?.name : "TBD";
+
+  return (
+    <article className={result ? "bracket-match complete" : "bracket-match"}>
+      <div className="bracket-match-meta">
+        <strong>Court {match.court}</strong>
+        <span>{match.scheduledTime}</span>
+      </div>
+      <div className="bracket-match-label">{match.label}</div>
+      <div className="bracket-team-row">
+        <span className={result?.winnerId === match.teamAId ? "winner" : ""}>{teamA?.name ?? "TBD"}</span>
+        <small>{getBracketSetSummary(match, "teamA")}</small>
+      </div>
+      <div className="bracket-team-row">
+        <span className={result?.winnerId === match.teamBId ? "winner" : ""}>{teamB?.name ?? "TBD"}</span>
+        <small>{getBracketSetSummary(match, "teamB")}</small>
+      </div>
+      <div className="bracket-work">Work: {worker}</div>
+    </article>
   );
 }
 
@@ -976,6 +1066,14 @@ function getScoreText(match: Match): string {
   }
 
   return playedSets.map((set) => `${set.teamA}-${set.teamB}`).join(", ");
+}
+
+function getBracketSetSummary(match: Match, side: keyof SetScore): string {
+  const scores = match.sets
+    .map((set) => set[side])
+    .filter((score): score is number => score !== null);
+
+  return scores.length ? scores.join(" / ") : "-";
 }
 
 function getPublicSyncLabel(syncStatus: string): string {
