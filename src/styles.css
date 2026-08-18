@@ -414,6 +414,9 @@ button:disabled {
 
 .public-match.complete {
   border-color: rgba(32, 199, 201, 0.5);
+  background:
+    linear-gradient(90deg, rgba(32, 199, 201, 0.12), transparent 65%),
+    #101619;
 }
 
 .flow-preview {
@@ -457,6 +460,9 @@ button:disabled {
 
 .public-teams .winner {
   color: #20c7c9;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 .versus,
@@ -471,6 +477,27 @@ button:disabled {
   display: flex;
   justify-content: space-between;
   gap: 8px;
+  align-items: center;
+}
+
+.final-badge {
+  border-radius: 4px;
+  padding: 3px 6px;
+  color: #061011;
+  background: #20c7c9;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.final-summary,
+.score-summary {
+  color: #f8fbfb;
+  font-weight: 900;
+}
+
+.score-summary {
+  color: #20c7c9;
 }
 
 .public-worker {

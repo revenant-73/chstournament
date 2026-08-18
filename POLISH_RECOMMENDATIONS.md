@@ -20,6 +20,7 @@ Parent-facing clarity is the main opportunity from here. The app should help som
 
 4. Stronger completed-score treatment
    - Make final scores and winners pop a little more once results start coming in.
+   - Status: implemented.
 
 5. Public refresh hint
    - Add a small note that results update automatically about every 15 seconds.

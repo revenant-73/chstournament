@@ -1116,8 +1116,15 @@ function PublicMatchCard({ match, teamsById }: { match: Match; teamsById: Map<st
         <span className={result?.winnerId === match.teamBId ? "winner" : ""}>{teamB?.name ?? "TBD"}</span>
       </div>
       <div className="public-match-footer">
-        <span>{result ? `Final: ${winnerName}` : "Upcoming"}</span>
-        <span>{scoreText}</span>
+        {result ? (
+          <>
+            <span className="final-badge">Final</span>
+            <span className="final-summary">{winnerName}</span>
+          </>
+        ) : (
+          <span>Upcoming</span>
+        )}
+        <span className={result ? "score-summary" : ""}>{scoreText}</span>
       </div>
       <div className="public-worker">Work: {match.workTeamId ? teamsById.get(match.workTeamId)?.name : "TBD"}</div>
     </div>
