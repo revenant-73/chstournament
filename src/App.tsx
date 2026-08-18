@@ -695,6 +695,7 @@ function BracketView({
     <section className="bracket-view">
       {seededTeams.length === 9 && <ReseedingPanel seededTeams={seededTeams} />}
       {finalPlacements.length === 9 && <FinalStandingsPanel placements={finalPlacements} />}
+      <VisualBracketPanel matches={matches} teamsById={teamsById} />
       <div className="bracket-grid">
         {bracketRounds.map((round) => {
           const roundMatches = matches
@@ -717,6 +718,161 @@ function BracketView({
         })}
       </div>
     </section>
+  );
+}
+
+function VisualBracketPanel({ matches, teamsById }: { matches: Match[]; teamsById: Map<string, Team> }) {
+  const getMatch = (round: number, court: number) => matches.find((match) => match.round === round && match.court === court);
+  const visualMatchCount = matches.filter((match) => match.round >= 5 && match.round <= 7).length;
+
+  if (!visualMatchCount) {
+    return null;
+  }
+
+  return (
+    <section className="visual-bracket-panel" aria-labelledby="visual-bracket-title">
+      <div className="visual-bracket-title-row">
+        <div>
+          <p className="eyebrow">Visual Bracket</p>
+          <h2 id="visual-bracket-title">Championship and placement paths</h2>
+        </div>
+        <span>{visualMatchCount}/9 matches posted</span>
+      </div>
+
+      <div className="visual-bracket-scroller">
+        <div className="visual-bracket-board" role="list" aria-label="Visual final bracket">
+          <div className="visual-round-label round-five">Round 5</div>
+          <div className="visual-round-label round-six">Round 6</div>
+          <div className="visual-round-label round-seven">Round 7</div>
+
+          <VisualBracketNode
+            className="slot-r5-c1"
+            match={getMatch(5, 1)}
+            teamsById={teamsById}
+            fallbackLabel="#3 vs #6"
+            pathLabel="Championship feeder"
+          />
+          <VisualBracketNode
+            className="slot-r5-c2"
+            match={getMatch(5, 2)}
+            teamsById={teamsById}
+            fallbackLabel="#4 vs #5"
+            pathLabel="Championship feeder"
+          />
+          <VisualBracketNode
+            className="slot-r5-c3"
+            match={getMatch(5, 3)}
+            teamsById={teamsById}
+            fallbackLabel="#8 vs #9"
+            pathLabel="Lower bracket"
+          />
+
+          <VisualBracketNode
+            className="slot-r6-c1 championship-path"
+            match={getMatch(6, 1)}
+            teamsById={teamsById}
+            fallbackLabel="#1 vs Winner #4/#5"
+            pathLabel="Semifinal"
+          />
+          <VisualBracketNode
+            className="slot-r6-c2 championship-path"
+            match={getMatch(6, 2)}
+            teamsById={teamsById}
+            fallbackLabel="#2 vs Winner #3/#6"
+            pathLabel="Semifinal"
+          />
+          <VisualBracketNode
+            className="slot-r6-c3 placement-path"
+            match={getMatch(6, 3)}
+            teamsById={teamsById}
+            fallbackLabel="#7 vs Winner #8/#9"
+            pathLabel="7th-place feeder"
+          />
+
+          <VisualBracketNode
+            className="slot-r7-c1 championship-destination"
+            match={getMatch(7, 1)}
+            teamsById={teamsById}
+            fallbackLabel="Championship"
+            pathLabel="Title match"
+          />
+          <VisualBracketNode
+            className="slot-r7-c2 placement-destination"
+            match={getMatch(7, 2)}
+            teamsById={teamsById}
+            fallbackLabel="3rd Place"
+            pathLabel="Placement match"
+          />
+          <VisualBracketNode
+            className="slot-r7-c3 placement-destination"
+            match={getMatch(7, 3)}
+            teamsById={teamsById}
+            fallbackLabel="5th Place"
+            pathLabel="Placement match"
+          />
+
+          <div className="bracket-connector c-r5-1-to-r6-2 elbow down" aria-hidden="true" />
+          <div className="bracket-connector c-r5-2-to-r6-1 elbow up" aria-hidden="true" />
+          <div className="bracket-connector c-r5-3-to-r6-3 direct lower" aria-hidden="true" />
+          <div className="bracket-connector c-r6-1-to-r7-1 elbow down" aria-hidden="true" />
+          <div className="bracket-connector c-r6-2-to-r7-1 elbow up" aria-hidden="true" />
+          <div className="bracket-connector c-r6-1-to-r7-2 elbow down placement" aria-hidden="true" />
+          <div className="bracket-connector c-r6-2-to-r7-2 elbow down placement" aria-hidden="true" />
+          <div className="bracket-connector c-r5-1-to-r7-3 lane-stub placement" aria-hidden="true" />
+          <div className="bracket-connector c-r5-2-to-r7-3 lane-stub placement" aria-hidden="true" />
+          <div className="bracket-connector c-fifth-place-lane placement" aria-hidden="true" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function VisualBracketNode({
+  match,
+  teamsById,
+  fallbackLabel,
+  pathLabel,
+  className
+}: {
+  match?: Match;
+  teamsById: Map<string, Team>;
+  fallbackLabel: string;
+  pathLabel: string;
+  className: string;
+}) {
+  const result = match ? getMatchResult(match) : null;
+  const teamA = match ? teamsById.get(match.teamAId) : undefined;
+  const teamB = match ? teamsById.get(match.teamBId) : undefined;
+  const worker = match?.workTeamId ? teamsById.get(match.workTeamId)?.name : "TBD";
+  const isDestination = fallbackLabel === "Championship" || fallbackLabel === "3rd Place" || fallbackLabel === "5th Place";
+  const nodeClassName = [
+    "visual-bracket-node",
+    className,
+    result ? "complete" : "",
+    match ? "" : "pending",
+    isDestination ? "destination" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <article className={nodeClassName} role="listitem">
+      <div className="visual-node-meta">
+        <strong>{match ? `Court ${match.court}` : "Pending"}</strong>
+        <span>{match?.scheduledTime ?? "TBD"}</span>
+      </div>
+      <div className="visual-node-label">{match?.label ?? fallbackLabel}</div>
+      <div className="visual-node-path">{pathLabel}</div>
+      <div className="visual-node-team">
+        <span className={result?.winnerId === match?.teamAId ? "winner" : ""}>{teamA?.name ?? "TBD"}</span>
+        <small>{match ? getBracketSetSummary(match, "teamA") : "-"}</small>
+      </div>
+      <div className="visual-node-team">
+        <span className={result?.winnerId === match?.teamBId ? "winner" : ""}>{teamB?.name ?? "TBD"}</span>
+        <small>{match ? getBracketSetSummary(match, "teamB") : "-"}</small>
+      </div>
+      <div className="visual-node-work">Work: {worker}</div>
+    </article>
   );
 }
 
