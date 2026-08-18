@@ -280,6 +280,36 @@ describe("court dashboard", () => {
   });
 });
 
+describe("full tournament simulation", () => {
+  it("runs from pool setup through final standings", () => {
+    const teams = generateInitialPools(createDefaultTeams());
+    const poolMatches = completedPoolPlayMatches(teams);
+    const qualifierMatches = generateQualifierMatches(teams, poolMatches).map((match) => completeLowerSeedWin(match, teams));
+    const matchesThroughQualifiers = [...poolMatches, ...qualifierMatches];
+    const seededTeams = getReseededTeams(teams, matchesThroughQualifiers);
+    const roundFiveMatches = generateFinalBracketMatches(teams, matchesThroughQualifiers).map((match) =>
+      completeLowerSeedWin(match, teams)
+    );
+    const matchesThroughRoundFive = [...matchesThroughQualifiers, ...roundFiveMatches];
+    const roundSixMatches = generateRoundSixMatches(teams, matchesThroughRoundFive).map((match) => completeLowerSeedWin(match, teams));
+    const matchesThroughRoundSix = [...matchesThroughRoundFive, ...roundSixMatches];
+    const roundSevenMatches = generateRoundSevenMatches(teams, matchesThroughRoundSix).map((match) =>
+      completeLowerSeedWin(match, teams)
+    );
+    const allMatches = [...matchesThroughRoundSix, ...roundSevenMatches];
+
+    expect(poolMatches).toHaveLength(9);
+    expect(qualifierMatches).toHaveLength(3);
+    expect(seededTeams.map((seededTeam) => seededTeam.seed)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(roundFiveMatches).toHaveLength(3);
+    expect(roundSixMatches).toHaveLength(3);
+    expect(roundSevenMatches).toHaveLength(3);
+    expect(allMatches).toHaveLength(21);
+    expect(allMatches.every((match) => getMatchResult(match))).toBe(true);
+    expect(getFinalPlacements(teams, allMatches).map((placement) => placement.place)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  });
+});
+
 function seedsInPool(teams: Team[], pool: PoolId): number[] {
   return teams.filter((team) => team.pool === pool).map((team) => team.originalSeed);
 }
@@ -301,34 +331,14 @@ function withSets(match: Match, scores: Array<[number, number]>): Match {
 
 function completedPoolPlayMatches(teams: Team[]): Match[] {
   return generateInitialPoolMatches(teams).map((match) => {
-    const teamASeed = teams.find((team) => team.id === match.teamAId)?.originalSeed ?? 99;
-    const teamBSeed = teams.find((team) => team.id === match.teamBId)?.originalSeed ?? 99;
-    return teamASeed < teamBSeed
-      ? withSets(match, [
-          [25, 18],
-          [25, 18]
-        ])
-      : withSets(match, [
-          [18, 25],
-          [18, 25]
-        ]);
+    return completeLowerSeedWin(match, teams);
   });
 }
 
 function completedMatchesThroughQualifiers(teams: Team[]): Match[] {
   const poolMatches = completedPoolPlayMatches(teams);
   const qualifierMatches = generateQualifierMatches(teams, poolMatches).map((match) => {
-    const teamASeed = teams.find((team) => team.id === match.teamAId)?.originalSeed ?? 99;
-    const teamBSeed = teams.find((team) => team.id === match.teamBId)?.originalSeed ?? 99;
-    return teamASeed < teamBSeed
-      ? withSets(match, [
-          [25, 18],
-          [25, 18]
-        ])
-      : withSets(match, [
-          [18, 25],
-          [18, 25]
-        ]);
+    return completeLowerSeedWin(match, teams);
   });
 
   return [...poolMatches, ...qualifierMatches];
@@ -337,17 +347,7 @@ function completedMatchesThroughQualifiers(teams: Team[]): Match[] {
 function completedMatchesThroughRoundFive(teams: Team[]): Match[] {
   const matchesThroughQualifiers = completedMatchesThroughQualifiers(teams);
   const roundFiveMatches = generateFinalBracketMatches(teams, matchesThroughQualifiers).map((match) => {
-    const teamASeed = teams.find((team) => team.id === match.teamAId)?.originalSeed ?? 99;
-    const teamBSeed = teams.find((team) => team.id === match.teamBId)?.originalSeed ?? 99;
-    return teamASeed < teamBSeed
-      ? withSets(match, [
-          [25, 18],
-          [25, 18]
-        ])
-      : withSets(match, [
-          [18, 25],
-          [18, 25]
-        ]);
+    return completeLowerSeedWin(match, teams);
   });
 
   return [...matchesThroughQualifiers, ...roundFiveMatches];
@@ -356,17 +356,7 @@ function completedMatchesThroughRoundFive(teams: Team[]): Match[] {
 function completedMatchesThroughRoundSix(teams: Team[]): Match[] {
   const matchesThroughRoundFive = completedMatchesThroughRoundFive(teams);
   const roundSixMatches = generateRoundSixMatches(teams, matchesThroughRoundFive).map((match) => {
-    const teamASeed = teams.find((team) => team.id === match.teamAId)?.originalSeed ?? 99;
-    const teamBSeed = teams.find((team) => team.id === match.teamBId)?.originalSeed ?? 99;
-    return teamASeed < teamBSeed
-      ? withSets(match, [
-          [25, 18],
-          [25, 18]
-        ])
-      : withSets(match, [
-          [18, 25],
-          [18, 25]
-        ]);
+    return completeLowerSeedWin(match, teams);
   });
 
   return [...matchesThroughRoundFive, ...roundSixMatches];
@@ -375,6 +365,13 @@ function completedMatchesThroughRoundSix(teams: Team[]): Match[] {
 function completedMatchesThroughRoundSeven(teams: Team[]): Match[] {
   const matchesThroughRoundSix = completedMatchesThroughRoundSix(teams);
   const roundSevenMatches = generateRoundSevenMatches(teams, matchesThroughRoundSix).map((match) => {
+    return completeLowerSeedWin(match, teams);
+  });
+
+  return [...matchesThroughRoundSix, ...roundSevenMatches];
+}
+
+function completeLowerSeedWin(match: Match, teams: Team[]): Match {
     const teamASeed = teams.find((team) => team.id === match.teamAId)?.originalSeed ?? 99;
     const teamBSeed = teams.find((team) => team.id === match.teamBId)?.originalSeed ?? 99;
     return teamASeed < teamBSeed
@@ -386,7 +383,4 @@ function completedMatchesThroughRoundSeven(teams: Team[]): Match[] {
           [18, 25],
           [18, 25]
         ]);
-  });
-
-  return [...matchesThroughRoundSix, ...roundSevenMatches];
 }
