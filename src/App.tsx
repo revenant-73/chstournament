@@ -155,6 +155,27 @@ export default function App() {
     }));
   }
 
+  function updateMatch(matchId: string, patch: Partial<Pick<Match, "teamAId" | "teamBId" | "workTeamId" | "scheduledTime" | "label">>) {
+    setState((current) => ({
+      ...current,
+      matches: current.matches.map((match) => {
+        if (match.id !== matchId) {
+          return match;
+        }
+
+        const teamsChanged =
+          (patch.teamAId !== undefined && patch.teamAId !== match.teamAId) ||
+          (patch.teamBId !== undefined && patch.teamBId !== match.teamBId);
+
+        return {
+          ...match,
+          ...patch,
+          sets: teamsChanged ? createEmptyScoreSets() : match.sets
+        };
+      })
+    }));
+  }
+
   function generatePoolsAndSchedule() {
     setState((current) => {
       const teams = generateInitialPools(current.teams);
@@ -409,9 +430,11 @@ export default function App() {
           {seededTeams.length === 9 && <ReseedingPanel seededTeams={seededTeams} />}
           <ScoresView
             matches={sortedMatches(state.matches)}
+            teams={state.teams}
             teamsById={teamsById}
             isReadOnly={isReadOnly}
             onScoreChange={updateSetScore}
+            onMatchChange={updateMatch}
           />
         </>
       )}
@@ -905,12 +928,17 @@ function SetupView({
 
 interface ScoresViewProps {
   matches: Match[];
+  teams: Team[];
   teamsById: Map<string, Team>;
   isReadOnly: boolean;
   onScoreChange: (matchId: string, setIndex: number, side: keyof SetScore, value: string) => void;
+  onMatchChange: (
+    matchId: string,
+    patch: Partial<Pick<Match, "teamAId" | "teamBId" | "workTeamId" | "scheduledTime" | "label">>
+  ) => void;
 }
 
-function ScoresView({ matches, teamsById, isReadOnly, onScoreChange }: ScoresViewProps) {
+function ScoresView({ matches, teams, teamsById, isReadOnly, onScoreChange, onMatchChange }: ScoresViewProps) {
   if (!matches.length) {
     return <EmptyState title="No Matches Yet" detail="Generate initial pools from Setup to create the 8:00, 9:00, and 10:00 AM rounds." />;
   }
@@ -943,9 +971,75 @@ function ScoresView({ matches, teamsById, isReadOnly, onScoreChange }: ScoresVie
           />
           <MatchOutcome match={match} teamsById={teamsById} />
           <p className="work-team">Work team: {match.workTeamId ? teamsById.get(match.workTeamId)?.name : "TBD"}</p>
+          {!isReadOnly && <DirectorOverride match={match} teams={teams} onMatchChange={onMatchChange} />}
         </article>
       ))}
     </section>
+  );
+}
+
+function DirectorOverride({
+  match,
+  teams,
+  onMatchChange
+}: {
+  match: Match;
+  teams: Team[];
+  onMatchChange: (
+    matchId: string,
+    patch: Partial<Pick<Match, "teamAId" | "teamBId" | "workTeamId" | "scheduledTime" | "label">>
+  ) => void;
+}) {
+  const sortedTeams = teams.slice().sort((a, b) => a.originalSeed - b.originalSeed);
+
+  return (
+    <details className="override-panel">
+      <summary>Director override</summary>
+      <div className="override-grid">
+        <label>
+          Team A
+          <select value={match.teamAId} onChange={(event) => onMatchChange(match.id, { teamAId: event.target.value })}>
+            {sortedTeams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Team B
+          <select value={match.teamBId} onChange={(event) => onMatchChange(match.id, { teamBId: event.target.value })}>
+            {sortedTeams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Work Team
+          <select
+            value={match.workTeamId ?? ""}
+            onChange={(event) => onMatchChange(match.id, { workTeamId: event.target.value || undefined })}
+          >
+            <option value="">TBD</option>
+            {sortedTeams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Time
+          <input value={match.scheduledTime} onChange={(event) => onMatchChange(match.id, { scheduledTime: event.target.value })} />
+        </label>
+        <label className="override-label-wide">
+          Label
+          <input value={match.label} onChange={(event) => onMatchChange(match.id, { label: event.target.value })} />
+        </label>
+      </div>
+    </details>
   );
 }
 
@@ -1074,6 +1168,14 @@ function getBracketSetSummary(match: Match, side: keyof SetScore): string {
     .filter((score): score is number => score !== null);
 
   return scores.length ? scores.join(" / ") : "-";
+}
+
+function createEmptyScoreSets(): SetScore[] {
+  return [
+    { teamA: null, teamB: null },
+    { teamA: null, teamB: null },
+    { teamA: null, teamB: null }
+  ];
 }
 
 function getPublicSyncLabel(syncStatus: string): string {

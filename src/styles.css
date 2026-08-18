@@ -770,6 +770,31 @@ select {
   font-weight: 900;
 }
 
+.override-panel {
+  margin-top: 12px;
+  border-top: 1px solid rgba(207, 213, 216, 0.13);
+  padding-top: 10px;
+}
+
+.override-panel summary {
+  min-height: 36px;
+  color: #b8c1c6;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.override-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.override-label-wide {
+  grid-column: 1 / -1;
+}
+
 .pool-panel {
   padding: 16px;
 }
@@ -900,6 +925,14 @@ select {
 
   .score-line {
     grid-template-columns: 1fr repeat(3, minmax(54px, 1fr));
+  }
+
+  .override-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .override-label-wide {
+    grid-column: auto;
   }
 }
 
