@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createTournamentBackupJson, parseTournamentBackupJson } from "./backup";
+import { getCourtStatuses } from "./dashboard";
 import {
   areQualifierMatchesComplete,
   areRoundFiveMatchesComplete,
@@ -257,6 +258,25 @@ describe("tournament backup", () => {
 
   it("rejects JSON that is not a tournament state", () => {
     expect(() => parseTournamentBackupJson('{"hello":"world"}')).toThrow("Century tournament backup");
+  });
+});
+
+describe("court dashboard", () => {
+  it("shows current and next incomplete match for each court", () => {
+    const teams = generateInitialPools(createDefaultTeams());
+    const matches = generateInitialPoolMatches(teams);
+    const statuses = getCourtStatuses([
+      withSets(matches[0], [
+        [25, 18],
+        [25, 18]
+      ]),
+      ...matches.slice(1)
+    ]);
+
+    expect(statuses[0].currentMatch?.id).toBe("pool-A-round-2");
+    expect(statuses[0].nextMatch?.id).toBe("pool-A-round-3");
+    expect(statuses[0].completedCount).toBe(1);
+    expect(statuses[1].currentMatch?.id).toBe("pool-B-round-1");
   });
 });
 

@@ -3,6 +3,7 @@ import { fetchRemoteTournamentState, saveRemoteTournamentState } from "./apiClie
 import { getCurrentRoute } from "./routes";
 import { clearTournamentState, loadTournamentState, saveTournamentState } from "./storage";
 import { createTournamentBackupJson, parseTournamentBackupJson } from "./tournament/backup";
+import { getCourtStatuses } from "./tournament/dashboard";
 import { findConferenceConflicts, generateInitialPoolMatches, generateInitialPools } from "./tournament/pools";
 import {
   areQualifierMatchesComplete,
@@ -36,7 +37,9 @@ export default function App() {
   const route = getCurrentRoute();
   const isReadOnly = route === "results";
   const [state, setState] = useState<TournamentState>(() => loadTournamentState() ?? createInitialState());
-  const [activeView, setActiveView] = useState<"setup" | "scores" | "pools">(() => (isReadOnly ? "scores" : "setup"));
+  const [activeView, setActiveView] = useState<"dashboard" | "setup" | "scores" | "pools">(() =>
+    isReadOnly ? "scores" : "dashboard"
+  );
   const [adminPin, setAdminPin] = useState(() => sessionStorage.getItem(adminPinKey) ?? "");
   const [syncStatus, setSyncStatus] = useState("Local draft");
   const [backupStatus, setBackupStatus] = useState("");
@@ -113,6 +116,7 @@ export default function App() {
   }, [adminPin, isReadOnly, state]);
 
   const teamsById = useMemo(() => new Map(state.teams.map((team) => [team.id, team])), [state.teams]);
+  const courtStatuses = useMemo(() => getCourtStatuses(state.matches), [state.matches]);
   const conferenceConflicts = useMemo(() => findConferenceConflicts(state.teams), [state.teams]);
   const hasGeneratedPools = state.teams.every((team) => team.pool);
   const poolPlayComplete = useMemo(() => arePoolPlayMatchesComplete(state.matches), [state.matches]);
@@ -354,6 +358,9 @@ export default function App() {
       </section>
 
       <nav className="tabs" aria-label="Primary views">
+        <button className={activeView === "dashboard" ? "active" : ""} onClick={() => setActiveView("dashboard")}>
+          Dashboard
+        </button>
         <button className={activeView === "setup" ? "active" : ""} onClick={() => setActiveView("setup")}>
           Setup
         </button>
@@ -364,6 +371,8 @@ export default function App() {
           Pools
         </button>
       </nav>
+
+      {activeView === "dashboard" && <DashboardView courtStatuses={courtStatuses} teamsById={teamsById} />}
 
       {activeView === "setup" && (
         <SetupView
@@ -406,6 +415,75 @@ export default function App() {
 
       {activeView === "pools" && <PoolsView teams={state.teams} matches={state.matches} />}
     </main>
+  );
+}
+
+function DashboardView({
+  courtStatuses,
+  teamsById
+}: {
+  courtStatuses: ReturnType<typeof getCourtStatuses>;
+  teamsById: Map<string, Team>;
+}) {
+  if (!courtStatuses.some((status) => status.totalCount > 0)) {
+    return <EmptyState title="No Court Schedule Yet" detail="Generate initial pools from Setup to populate the court dashboard." />;
+  }
+
+  return (
+    <section className="dashboard-grid">
+      {courtStatuses.map((status) => (
+        <article className="court-panel" key={status.court}>
+          <div className="court-panel-header">
+            <p className="eyebrow">Court {status.court}</p>
+            <span>
+              {status.completedCount}/{status.totalCount} complete
+            </span>
+          </div>
+          <DashboardMatchBlock title="Now" match={status.currentMatch} teamsById={teamsById} fallback="Court complete" />
+          <DashboardMatchBlock title="Next" match={status.nextMatch} teamsById={teamsById} fallback="No later match" />
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function DashboardMatchBlock({
+  title,
+  match,
+  teamsById,
+  fallback
+}: {
+  title: string;
+  match?: Match;
+  teamsById: Map<string, Team>;
+  fallback: string;
+}) {
+  if (!match) {
+    return (
+      <div className="dashboard-match muted">
+        <strong>{title}</strong>
+        <span>{fallback}</span>
+      </div>
+    );
+  }
+
+  const teamA = teamsById.get(match.teamAId)?.name ?? "TBD";
+  const teamB = teamsById.get(match.teamBId)?.name ?? "TBD";
+  const worker = match.workTeamId ? teamsById.get(match.workTeamId)?.name : "TBD";
+
+  return (
+    <div className="dashboard-match">
+      <strong>{title}</strong>
+      <div className="dashboard-time">
+        Round {match.round} | {match.scheduledTime}
+      </div>
+      <div className="dashboard-teams">
+        <span>{teamA}</span>
+        <small>vs</small>
+        <span>{teamB}</span>
+      </div>
+      <div className="dashboard-work">Work: {worker}</div>
+    </div>
   );
 }
 
