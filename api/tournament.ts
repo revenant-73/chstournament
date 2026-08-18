@@ -1,8 +1,23 @@
 import { createClient } from "@libsql/client";
-import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/libsql";
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import type { IncomingHttpHeaders } from "node:http";
+
+type ApiRequest = {
+  method?: string;
+  body?: {
+    state?: unknown;
+  };
+  headers: IncomingHttpHeaders;
+};
+
+type ApiResponse = {
+  status: (code: number) => ApiResponse;
+  json: (body: unknown) => void;
+  end: () => void;
+  setHeader: (name: string, value: string) => void;
+};
 
 const tournamentId = "century-varsity-2026";
 
@@ -12,7 +27,7 @@ const tournamentSnapshots = sqliteTable("tournament_snapshots", {
   updatedAt: text("updated_at").notNull()
 });
 
-export default async function handler(request: VercelRequest, response: VercelResponse) {
+export default async function handler(request: ApiRequest, response: ApiResponse) {
   setCorsHeaders(response);
 
   if (request.method === "OPTIONS") {
@@ -102,7 +117,7 @@ async function ensureSchema(db: ReturnType<typeof createDatabase>) {
   `);
 }
 
-function isAdminRequest(request: VercelRequest): boolean {
+function isAdminRequest(request: ApiRequest): boolean {
   const configuredPin = process.env.ADMIN_PIN;
   if (!configuredPin) {
     return false;
@@ -110,7 +125,7 @@ function isAdminRequest(request: VercelRequest): boolean {
   return request.headers["x-admin-pin"] === configuredPin;
 }
 
-function setCorsHeaders(response: VercelResponse) {
+function setCorsHeaders(response: ApiResponse) {
   response.setHeader("Access-Control-Allow-Origin", "*");
   response.setHeader("Access-Control-Allow-Methods", "GET, PUT, OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Admin-Pin");
