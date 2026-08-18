@@ -244,6 +244,27 @@ button:disabled {
   border-color: rgba(32, 199, 201, 0.5);
 }
 
+.flow-preview {
+  border-style: dashed;
+  background: rgba(14, 18, 20, 0.62);
+}
+
+.preview-match {
+  border-style: dashed;
+  background: rgba(207, 213, 216, 0.04);
+}
+
+.preview-match .public-teams {
+  color: #d8eef0;
+}
+
+.flow-note {
+  grid-column: 1 / -1;
+  color: #b8c1c6;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .public-court {
   color: #20c7c9;
   font-size: 0.78rem;

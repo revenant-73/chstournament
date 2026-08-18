@@ -35,6 +35,7 @@ After the tournament:
 ## Admin Notes
 
 - The public page is read-only and has no score-edit controls.
+- The public page shows posted matches plus preview cards for future Rounds 4-7 until teams are assigned.
 - The admin page stays locked until the admin PIN is verified.
 - Work team means the team helping officiate, not a team currently playing.
 - For bracket matches, the work team is normally the team that lost on that same court in the previous match.

@@ -24,6 +24,52 @@ import type { Match, PoolId, SetScore, Team, TeamStanding, TournamentState } fro
 
 const pools: PoolId[] = ["A", "B", "C"];
 const adminPinKey = "century-varsity-admin-pin";
+const publicFlowPreviewRounds = [
+  {
+    round: 4,
+    time: "11:00 AM",
+    title: "Qualifier crossovers",
+    note: "Second-place teams play third-place teams. Pool winners work.",
+    matches: [
+      { court: 1, label: "A2 vs B3", work: "A1" },
+      { court: 2, label: "B2 vs C3", work: "B1" },
+      { court: 3, label: "C2 vs A3", work: "C1" }
+    ]
+  },
+  {
+    round: 5,
+    time: "12:00 PM",
+    title: "Bracket openers",
+    note: "After Round 4, teams are reseeded #1 through #9.",
+    matches: [
+      { court: 1, label: "#3 vs #6", work: "#1" },
+      { court: 2, label: "#4 vs #5", work: "#2" },
+      { court: 3, label: "#8 vs #9", work: "#7" }
+    ]
+  },
+  {
+    round: 6,
+    time: "1:00 PM",
+    title: "Semifinals and lower bracket",
+    note: "Work team is usually the team that lost on that court in Round 5.",
+    matches: [
+      { court: 1, label: "#1 vs Winner #4/#5", work: "Loser of Court 2" },
+      { court: 2, label: "#2 vs Winner #3/#6", work: "Loser of Court 1" },
+      { court: 3, label: "#7 vs Winner #8/#9", work: "Loser of Court 3" }
+    ]
+  },
+  {
+    round: 7,
+    time: "2:00 PM",
+    title: "Placement matches",
+    note: "Championship, 3rd place, and 5th place are played at the same time.",
+    matches: [
+      { court: 1, label: "Championship", work: "Previous loser if available" },
+      { court: 2, label: "3rd Place", work: "Previous loser if available" },
+      { court: 3, label: "5th Place", work: "Previous loser if available" }
+    ]
+  }
+];
 
 function createInitialState(): TournamentState {
   return {
@@ -821,6 +867,11 @@ function PublicResultsView({
   const matches = sortedMatches(state.matches);
   const hasPools = state.teams.every((team) => team.pool);
   const finalPlacements = getFinalPlacements(state.teams, state.matches);
+  const publicRounds = getPublicScheduleRounds(matches);
+  const previewMatchCount = publicRounds.reduce(
+    (total, round) => total + (round.kind === "preview" ? round.matches.length : 0),
+    0
+  );
 
   return (
     <main className="app-shell public-shell">
@@ -846,23 +897,17 @@ function PublicResultsView({
       <section className="public-section">
         <div className="section-title-row">
           <h2>Schedule & Results</h2>
-          <span>{matches.length ? `${matches.length} matches` : "Schedule pending"}</span>
+          <span>{matches.length ? `${matches.length} posted${previewMatchCount ? ` + ${previewMatchCount} preview` : ""}` : "Schedule pending"}</span>
         </div>
         {matches.length ? (
           <div className="public-rounds">
-            {groupMatchesByRound(matches).map(([round, roundMatches]) => (
-              <article className="round-strip" key={round}>
-                <div className="round-heading">
-                  <strong>Round {round}</strong>
-                  <span>{roundMatches[0]?.scheduledTime}</span>
-                </div>
-                <div className="court-strip">
-                  {roundMatches.map((match) => (
-                    <PublicMatchCard key={match.id} match={match} teamsById={teamsById} />
-                  ))}
-                </div>
-              </article>
-            ))}
+            {publicRounds.map((round) =>
+              round.kind === "actual" ? (
+                <PublicActualRound key={round.round} round={round.round} matches={round.matches} teamsById={teamsById} />
+              ) : (
+                <PublicPreviewRound key={round.round} round={round} />
+              )
+            )}
           </div>
         ) : (
           <EmptyState title="Schedule Not Posted Yet" detail="Tournament staff will post court assignments after pools are generated." />
@@ -876,6 +921,49 @@ function PublicResultsView({
         </details>
       )}
     </main>
+  );
+}
+
+function PublicActualRound({ round, matches, teamsById }: { round: number; matches: Match[]; teamsById: Map<string, Team> }) {
+  return (
+    <article className="round-strip" key={round}>
+      <div className="round-heading">
+        <strong>Round {round}</strong>
+        <span>{matches[0]?.scheduledTime}</span>
+      </div>
+      <div className="court-strip">
+        {matches.map((match) => (
+          <PublicMatchCard key={match.id} match={match} teamsById={teamsById} />
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function PublicPreviewRound({ round }: { round: PublicPreviewRoundData }) {
+  return (
+    <article className="round-strip flow-preview">
+      <div className="round-heading">
+        <strong>Round {round.round}</strong>
+        <span>{round.time}</span>
+      </div>
+      <div className="court-strip">
+        {round.matches.map((match) => (
+          <div className="public-match preview-match" key={`${round.round}-${match.court}`}>
+            <div className="public-court">Court {match.court}</div>
+            <div className="public-teams">
+              <span>{match.label}</span>
+            </div>
+            <div className="public-match-footer">
+              <span>{round.title}</span>
+              <span>Teams TBD</span>
+            </div>
+            <div className="public-worker">Work: {match.work}</div>
+          </div>
+        ))}
+        <div className="flow-note">{round.note}</div>
+      </div>
+    </article>
   );
 }
 
@@ -1203,8 +1291,37 @@ function EmptyState({ title, detail }: { title: string; detail: string }) {
   );
 }
 
+interface PublicPreviewRoundData {
+  kind: "preview";
+  round: number;
+  time: string;
+  title: string;
+  note: string;
+  matches: Array<{
+    court: number;
+    label: string;
+    work: string;
+  }>;
+}
+
+type PublicScheduleRound = { kind: "actual"; round: number; matches: Match[] } | PublicPreviewRoundData;
+
 function sortedMatches(matches: Match[]): Match[] {
   return matches.slice().sort((a, b) => a.round - b.round || a.court - b.court);
+}
+
+function getPublicScheduleRounds(matches: Match[]): PublicScheduleRound[] {
+  const actualRounds = groupMatchesByRound(matches).map(([round, roundMatches]) => ({
+    kind: "actual" as const,
+    round,
+    matches: roundMatches
+  }));
+  const actualRoundNumbers = new Set(actualRounds.map((round) => round.round));
+  const previewRounds = publicFlowPreviewRounds
+    .filter((round) => !actualRoundNumbers.has(round.round))
+    .map((round) => ({ ...round, kind: "preview" as const }));
+
+  return [...actualRounds, ...previewRounds].sort((a, b) => a.round - b.round);
 }
 
 function groupMatchesByRound(matches: Match[]): Array<[number, Match[]]> {
