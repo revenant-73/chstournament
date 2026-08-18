@@ -899,6 +899,7 @@ function PublicResultsView({
       <section className="parent-note">
         <strong>Find your court, then the time.</strong>
         <span>Work team means that team is helping officiate, not playing.</span>
+        <small>Updates automatically about every 15 seconds.</small>
       </section>
 
       {matches.length > 0 && <PublicNowNextBand courtStatuses={publicCourtStatuses} teamsById={teamsById} />}

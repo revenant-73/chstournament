@@ -252,6 +252,12 @@ button:disabled {
   color: #b8c1c6;
 }
 
+.parent-note small {
+  color: #b8c1c6;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
 .public-section {
   display: grid;
   gap: 8px;

@@ -24,6 +24,7 @@ Parent-facing clarity is the main opportunity from here. The app should help som
 
 5. Public refresh hint
    - Add a small note that results update automatically about every 15 seconds.
+   - Status: implemented.
 
 6. Admin event-ready banner
    - Show a pre-tournament checklist summary: synced, scores reset, teams loaded, pool matches posted, public page live.
