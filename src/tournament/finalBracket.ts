@@ -9,6 +9,12 @@ export interface TournamentSeed {
   standing: TeamStanding;
 }
 
+export interface FinalPlacement {
+  place: number;
+  team: Team;
+  source: string;
+}
+
 export function areQualifierMatchesComplete(matches: Match[]): boolean {
   const qualifierMatches = matches.filter((match) => match.round === 4);
   return qualifierMatches.length === 3 && qualifierMatches.every((match) => getMatchResult(match));
@@ -181,6 +187,47 @@ export function generateRoundSevenMatches(teams: Team[], matches: Match[]): Matc
   ].filter((match): match is Match => Boolean(match));
 }
 
+export function areRoundSevenMatchesComplete(matches: Match[]): boolean {
+  const roundSevenMatches = getRoundSevenMatches(matches);
+  return roundSevenMatches.length === 3 && roundSevenMatches.every((match) => getMatchResult(match));
+}
+
+export function getFinalPlacements(teams: Team[], matches: Match[]): FinalPlacement[] {
+  const roundFiveMatches = getRoundFiveMatches(matches);
+  const roundSixMatches = getRoundSixMatches(matches);
+  const roundSevenMatches = getRoundSevenMatches(matches);
+  if (
+    roundFiveMatches.length !== 3 ||
+    roundSixMatches.length !== 3 ||
+    roundSevenMatches.length !== 3 ||
+    !areRoundSevenMatchesComplete(matches)
+  ) {
+    return [];
+  }
+
+  const teamsById = new Map(teams.map((team) => [team.id, team]));
+  const roundFiveCourtThreeResult = getMatchResult(roundFiveMatches[2]);
+  const roundSixCourtThreeResult = getMatchResult(roundSixMatches[2]);
+  const championshipResult = getMatchResult(roundSevenMatches[0]);
+  const thirdPlaceResult = getMatchResult(roundSevenMatches[1]);
+  const fifthPlaceResult = getMatchResult(roundSevenMatches[2]);
+  if (!roundFiveCourtThreeResult || !roundSixCourtThreeResult || !championshipResult || !thirdPlaceResult || !fifthPlaceResult) {
+    return [];
+  }
+
+  return [
+    createFinalPlacement(1, teamsById.get(championshipResult.winnerId), "Championship winner"),
+    createFinalPlacement(2, teamsById.get(championshipResult.loserId), "Championship runner-up"),
+    createFinalPlacement(3, teamsById.get(thirdPlaceResult.winnerId), "3rd-place winner"),
+    createFinalPlacement(4, teamsById.get(thirdPlaceResult.loserId), "3rd-place runner-up"),
+    createFinalPlacement(5, teamsById.get(fifthPlaceResult.winnerId), "5th-place winner"),
+    createFinalPlacement(6, teamsById.get(fifthPlaceResult.loserId), "5th-place runner-up"),
+    createFinalPlacement(7, teamsById.get(roundSixCourtThreeResult.winnerId), "Lower-bracket final winner"),
+    createFinalPlacement(8, teamsById.get(roundSixCourtThreeResult.loserId), "Lower-bracket final runner-up"),
+    createFinalPlacement(9, teamsById.get(roundFiveCourtThreeResult.loserId), "#8/#9 match loser")
+  ].filter((placement): placement is FinalPlacement => Boolean(placement));
+}
+
 function rankSeedGroup(teams: Team[], matches: Match[], startingSeed: number): TournamentSeed[] {
   return teams
     .map((team) => createCumulativeStanding(team, matches))
@@ -278,6 +325,10 @@ function getRoundSixMatches(matches: Match[]): Match[] {
   return matches.filter((match) => match.round === 6).sort((a, b) => a.court - b.court);
 }
 
+function getRoundSevenMatches(matches: Match[]): Match[] {
+  return matches.filter((match) => match.round === 7).sort((a, b) => a.court - b.court);
+}
+
 function getAvailableSameCourtWorker(match: Match, teamsById: Map<string, Team>, unavailableTeamIds: Set<string>): Team | undefined {
   const result = getMatchResult(match);
   if (!result || unavailableTeamIds.has(result.loserId)) {
@@ -285,4 +336,12 @@ function getAvailableSameCourtWorker(match: Match, teamsById: Map<string, Team>,
   }
 
   return teamsById.get(result.loserId);
+}
+
+function createFinalPlacement(place: number, team: Team | undefined, source: string): FinalPlacement | null {
+  if (!team) {
+    return null;
+  }
+
+  return { place, team, source };
 }

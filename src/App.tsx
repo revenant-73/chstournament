@@ -7,9 +7,11 @@ import {
   areQualifierMatchesComplete,
   areRoundFiveMatchesComplete,
   areRoundSixMatchesComplete,
+  areRoundSevenMatchesComplete,
   generateFinalBracketMatches,
   generateRoundSevenMatches,
   generateRoundSixMatches,
+  getFinalPlacements,
   getReseededTeams
 } from "./tournament/finalBracket";
 import { arePoolPlayMatchesComplete, generateQualifierMatches } from "./tournament/qualifiers";
@@ -114,7 +116,9 @@ export default function App() {
   const qualifierComplete = useMemo(() => areQualifierMatchesComplete(state.matches), [state.matches]);
   const roundFiveComplete = useMemo(() => areRoundFiveMatchesComplete(state.matches), [state.matches]);
   const roundSixComplete = useMemo(() => areRoundSixMatchesComplete(state.matches), [state.matches]);
+  const roundSevenComplete = useMemo(() => areRoundSevenMatchesComplete(state.matches), [state.matches]);
   const seededTeams = useMemo(() => getReseededTeams(state.teams, state.matches), [state.matches, state.teams]);
+  const finalPlacements = useMemo(() => getFinalPlacements(state.teams, state.matches), [state.matches, state.teams]);
   const hasQualifierMatches = state.matches.some((match) => match.round === 4);
   const hasFinalBracketMatches = state.matches.some((match) => match.round >= 5);
   const hasRoundSixMatches = state.matches.some((match) => match.round >= 6);
@@ -318,6 +322,7 @@ export default function App() {
             qualifierComplete={qualifierComplete}
             roundFiveComplete={roundFiveComplete}
             roundSixComplete={roundSixComplete}
+            roundSevenComplete={roundSevenComplete}
             hasQualifierMatches={hasQualifierMatches}
             hasFinalBracketMatches={hasFinalBracketMatches}
             hasRoundSixMatches={hasRoundSixMatches}
@@ -327,6 +332,7 @@ export default function App() {
             onGenerateRoundSix={generateRoundSix}
             onGenerateRoundSeven={generateRoundSeven}
           />
+          {finalPlacements.length === 9 && <FinalStandingsPanel placements={finalPlacements} />}
           {seededTeams.length === 9 && <ReseedingPanel seededTeams={seededTeams} />}
           <ScoresView
             matches={sortedMatches(state.matches)}
@@ -368,11 +374,32 @@ function ReseedingPanel({
   );
 }
 
+function FinalStandingsPanel({ placements }: { placements: Array<{ place: number; team: Team; source: string }> }) {
+  return (
+    <section className="final-standings-panel">
+      <div className="section-title-row">
+        <h2>Final Standings</h2>
+        <span>Tournament complete</span>
+      </div>
+      <div className="placement-grid">
+        {placements.map((placement) => (
+          <article className={placement.place <= 3 ? "placement-card podium" : "placement-card"} key={placement.team.id}>
+            <strong>{formatPlace(placement.place)}</strong>
+            <span>{placement.team.name}</span>
+            <small>{placement.source}</small>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ProgressionPanel({
   poolPlayComplete,
   qualifierComplete,
   roundFiveComplete,
   roundSixComplete,
+  roundSevenComplete,
   hasQualifierMatches,
   hasFinalBracketMatches,
   hasRoundSixMatches,
@@ -386,6 +413,7 @@ function ProgressionPanel({
   qualifierComplete: boolean;
   roundFiveComplete: boolean;
   roundSixComplete: boolean;
+  roundSevenComplete: boolean;
   hasQualifierMatches: boolean;
   hasFinalBracketMatches: boolean;
   hasRoundSixMatches: boolean;
@@ -431,7 +459,9 @@ function ProgressionPanel({
         </h2>
         <p>
           {hasRoundSevenMatches
-            ? "Round 7 has been added for the championship, 3rd place, and 5th place matches."
+            ? roundSevenComplete
+              ? "Final standings are ready."
+              : "Enter all three Round 7 scores to complete final standings."
             : hasRoundSixMatches
             ? roundSixComplete
               ? "Round 6 is complete. Generate the 2:00 PM championship, 3rd place, and 5th place matches."
@@ -472,6 +502,7 @@ function PublicResultsView({
 }) {
   const matches = sortedMatches(state.matches);
   const hasPools = state.teams.every((team) => team.pool);
+  const finalPlacements = getFinalPlacements(state.teams, state.matches);
 
   return (
     <main className="app-shell public-shell">
@@ -491,6 +522,8 @@ function PublicResultsView({
         <strong>Find your court, then the time.</strong>
         <span>Work team means that team is helping officiate, not playing.</span>
       </section>
+
+      {finalPlacements.length === 9 && <FinalStandingsPanel placements={finalPlacements} />}
 
       <section className="public-section">
         <div className="section-title-row">
@@ -814,4 +847,17 @@ function getPublicSyncLabel(syncStatus: string): string {
     return "Waiting";
   }
   return "Live";
+}
+
+function formatPlace(place: number): string {
+  if (place === 1) {
+    return "1st";
+  }
+  if (place === 2) {
+    return "2nd";
+  }
+  if (place === 3) {
+    return "3rd";
+  }
+  return `${place}th`;
 }
