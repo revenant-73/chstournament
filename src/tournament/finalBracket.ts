@@ -59,6 +59,61 @@ export function generateFinalBracketMatches(teams: Team[], matches: Match[]): Ma
   ].filter((match): match is Match => Boolean(match));
 }
 
+export function areRoundFiveMatchesComplete(matches: Match[]): boolean {
+  const roundFiveMatches = getRoundFiveMatches(matches);
+  return roundFiveMatches.length === 3 && roundFiveMatches.every((match) => getMatchResult(match));
+}
+
+export function generateRoundSixMatches(teams: Team[], matches: Match[]): Match[] {
+  const seededTeams = getReseededTeams(teams, matches);
+  const roundFiveMatches = getRoundFiveMatches(matches);
+  if (seededTeams.length !== 9 || roundFiveMatches.length !== 3 || !areRoundFiveMatchesComplete(matches)) {
+    return [];
+  }
+
+  const teamsById = new Map(teams.map((team) => [team.id, team]));
+  const seeds = new Map(seededTeams.map((seededTeam) => [seededTeam.seed, seededTeam.team]));
+  const courtOneResult = getMatchResult(roundFiveMatches[0]);
+  const courtTwoResult = getMatchResult(roundFiveMatches[1]);
+  const courtThreeResult = getMatchResult(roundFiveMatches[2]);
+  if (!courtOneResult || !courtTwoResult || !courtThreeResult) {
+    return [];
+  }
+
+  return [
+    createScheduledMatch(
+      "final-round-6-court-1",
+      6,
+      1,
+      "#1 vs Winner #4/#5",
+      seeds.get(1),
+      teamsById.get(courtTwoResult.winnerId),
+      teamsById.get(courtTwoResult.loserId),
+      "1:00 PM"
+    ),
+    createScheduledMatch(
+      "final-round-6-court-2",
+      6,
+      2,
+      "#2 vs Winner #3/#6",
+      seeds.get(2),
+      teamsById.get(courtOneResult.winnerId),
+      teamsById.get(courtOneResult.loserId),
+      "1:00 PM"
+    ),
+    createScheduledMatch(
+      "final-round-6-court-3",
+      6,
+      3,
+      "#7 vs Winner #8/#9",
+      seeds.get(7),
+      teamsById.get(courtThreeResult.winnerId),
+      teamsById.get(courtThreeResult.loserId),
+      "1:00 PM"
+    )
+  ].filter((match): match is Match => Boolean(match));
+}
+
 function rankSeedGroup(teams: Team[], matches: Match[], startingSeed: number): TournamentSeed[] {
   return teams
     .map((team) => createCumulativeStanding(team, matches))
@@ -118,19 +173,36 @@ function createFinalBracketMatch(
   teamB?: Team,
   worker?: Team
 ): Match | null {
+  return createScheduledMatch(`final-round-5-court-${court}`, 5, court, label, teamA, teamB, worker, "12:00 PM");
+}
+
+function createScheduledMatch(
+  id: string,
+  round: number,
+  court: CourtId,
+  label: string,
+  teamA?: Team,
+  teamB?: Team,
+  worker?: Team,
+  scheduledTime = "12:00 PM"
+): Match | null {
   if (!teamA || !teamB || !worker) {
     return null;
   }
 
   return {
-    id: `final-round-5-court-${court}`,
-    round: 5,
+    id,
+    round,
     court,
     label,
     teamAId: teamA.id,
     teamBId: teamB.id,
     workTeamId: worker.id,
-    scheduledTime: "12:00 PM",
+    scheduledTime,
     sets: createEmptySets()
   };
+}
+
+function getRoundFiveMatches(matches: Match[]): Match[] {
+  return matches.filter((match) => match.round === 5).sort((a, b) => a.court - b.court);
 }

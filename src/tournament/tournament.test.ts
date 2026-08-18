@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { areQualifierMatchesComplete, generateFinalBracketMatches, getReseededTeams } from "./finalBracket";
+import {
+  areQualifierMatchesComplete,
+  areRoundFiveMatchesComplete,
+  generateFinalBracketMatches,
+  generateRoundSixMatches,
+  getReseededTeams
+} from "./finalBracket";
 import { generateInitialPoolMatches, generateInitialPools } from "./pools";
 import { arePoolPlayMatchesComplete, generateQualifierMatches, getPoolFinishers } from "./qualifiers";
 import { getMatchResult } from "./scoring";
@@ -183,6 +189,19 @@ describe("final bracket reseeding", () => {
     expect(matchSeeds(finalMatches[1], teams)).toEqual({ teamA: 4, teamB: 5, workTeam: 2 });
     expect(matchSeeds(finalMatches[2], teams)).toEqual({ teamA: 8, teamB: 9, workTeam: 7 });
   });
+
+  it("generates the 1:00 PM Round 6 matches from Round 5 results", () => {
+    const teams = generateInitialPools(createDefaultTeams());
+    const matches = completedMatchesThroughRoundFive(teams);
+    const roundSixMatches = generateRoundSixMatches(teams, matches);
+
+    expect(areRoundFiveMatchesComplete(matches)).toBe(true);
+    expect(roundSixMatches).toHaveLength(3);
+    expect(roundSixMatches.map((match) => match.scheduledTime)).toEqual(["1:00 PM", "1:00 PM", "1:00 PM"]);
+    expect(matchSeeds(roundSixMatches[0], teams)).toEqual({ teamA: 1, teamB: 4, workTeam: 5 });
+    expect(matchSeeds(roundSixMatches[1], teams)).toEqual({ teamA: 2, teamB: 3, workTeam: 6 });
+    expect(matchSeeds(roundSixMatches[2], teams)).toEqual({ teamA: 7, teamB: 8, workTeam: 9 });
+  });
 });
 
 function seedsInPool(teams: Team[], pool: PoolId): number[] {
@@ -237,4 +256,23 @@ function completedMatchesThroughQualifiers(teams: Team[]): Match[] {
   });
 
   return [...poolMatches, ...qualifierMatches];
+}
+
+function completedMatchesThroughRoundFive(teams: Team[]): Match[] {
+  const matchesThroughQualifiers = completedMatchesThroughQualifiers(teams);
+  const roundFiveMatches = generateFinalBracketMatches(teams, matchesThroughQualifiers).map((match) => {
+    const teamASeed = teams.find((team) => team.id === match.teamAId)?.originalSeed ?? 99;
+    const teamBSeed = teams.find((team) => team.id === match.teamBId)?.originalSeed ?? 99;
+    return teamASeed < teamBSeed
+      ? withSets(match, [
+          [25, 18],
+          [25, 18]
+        ])
+      : withSets(match, [
+          [18, 25],
+          [18, 25]
+        ]);
+  });
+
+  return [...matchesThroughQualifiers, ...roundFiveMatches];
 }
