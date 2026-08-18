@@ -4,6 +4,7 @@
 
 - `/` and `/admin` show the tournament director controls.
 - `/results` shows the public read-only schedule, scores, winners, and pool standings.
+- `/qr` shows a printable QR-code handout for the public results page.
 
 ## Vercel Environment Variables
 

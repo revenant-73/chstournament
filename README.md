@@ -6,6 +6,7 @@ Event-day scoring and public results app for the Century varsity volleyball tour
 
 - Admin: https://chstournament.vercel.app/
 - Public results: https://chstournament.vercel.app/results
+- Printable QR code: https://chstournament.vercel.app/qr
 - GitHub: https://github.com/revenant-73/chstournament
 
 ## Event-Day Checklist
@@ -17,7 +18,8 @@ Before the tournament starts:
 3. Confirm the app says it is synced with Turso.
 4. Open the public results URL on a phone.
 5. Confirm the public page shows the correct pool-play schedule.
-6. Export a JSON backup from the admin page.
+6. Print or post the QR page if spectators need an easy scan link.
+7. Export a JSON backup from the admin page.
 
 During the tournament:
 

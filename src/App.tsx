@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import QRCode from "qrcode";
 import { fetchRemoteTournamentState, saveRemoteTournamentState, verifyAdminPin } from "./apiClient";
 import { getCurrentRoute } from "./routes";
 import { clearTournamentState, loadTournamentState, saveTournamentState } from "./storage";
@@ -24,6 +25,7 @@ import type { Match, PoolId, SetScore, Team, TeamStanding, TournamentState } fro
 
 const pools: PoolId[] = ["A", "B", "C"];
 const adminPinKey = "century-varsity-admin-pin";
+const publicResultsUrl = "https://chstournament.vercel.app/results";
 const publicFlowPreviewRounds = [
   {
     round: 4,
@@ -404,6 +406,10 @@ export default function App() {
         lastRemoteUpdate={lastRemoteUpdate}
       />
     );
+  }
+
+  if (route === "qr") {
+    return <QrCodePage />;
   }
 
   if (!adminPinVerified) {
@@ -922,6 +928,53 @@ function PublicResultsView({
           <PoolsView teams={state.teams} matches={state.matches} />
         </details>
       )}
+    </main>
+  );
+}
+
+function QrCodePage() {
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function generateQrCode() {
+      const dataUrl = await QRCode.toDataURL(publicResultsUrl, {
+        errorCorrectionLevel: "M",
+        margin: 2,
+        scale: 10,
+        color: {
+          dark: "#061011",
+          light: "#ffffff"
+        }
+      });
+
+      if (!cancelled) {
+        setQrCodeUrl(dataUrl);
+      }
+    }
+
+    void generateQrCode();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <main className="qr-page">
+      <section className="qr-sheet">
+        <p className="eyebrow">Century Volleyball</p>
+        <h1>Tournament Schedule & Results</h1>
+        <div className="qr-code-frame">
+          {qrCodeUrl ? <img src={qrCodeUrl} alt="QR code for Century tournament results" /> : <span>Loading QR code</span>}
+        </div>
+        <p className="qr-url">{publicResultsUrl}</p>
+        <p className="qr-note">Scan for live court assignments, scores, standings, and bracket flow.</p>
+        <div className="qr-actions">
+          <button onClick={() => window.print()}>Print</button>
+          <a href="/results">Open results</a>
+        </div>
+      </section>
     </main>
   );
 }

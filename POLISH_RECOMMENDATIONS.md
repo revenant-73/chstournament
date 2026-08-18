@@ -16,6 +16,7 @@ Parent-facing clarity is the main opportunity from here. The app should help som
 
 3. QR-code printable page
    - Add a simple page with the public results URL and a QR code for posting at check-in or near courts.
+   - Status: implemented.
 
 4. Stronger completed-score treatment
    - Make final scores and winners pop a little more once results start coming in.
