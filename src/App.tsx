@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchRemoteTournamentState, saveRemoteTournamentState } from "./apiClient";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { fetchRemoteTournamentState, saveRemoteTournamentState, verifyAdminPin } from "./apiClient";
 import { getCurrentRoute } from "./routes";
 import { clearTournamentState, loadTournamentState, saveTournamentState } from "./storage";
 import { createTournamentBackupJson, parseTournamentBackupJson } from "./tournament/backup";
@@ -41,10 +41,13 @@ export default function App() {
     isReadOnly ? "scores" : "dashboard"
   );
   const [adminPin, setAdminPin] = useState(() => sessionStorage.getItem(adminPinKey) ?? "");
+  const [adminPinVerified, setAdminPinVerified] = useState(false);
+  const [adminPinStatus, setAdminPinStatus] = useState("");
   const [syncStatus, setSyncStatus] = useState("Local draft");
   const [backupStatus, setBackupStatus] = useState("");
   const [lastRemoteUpdate, setLastRemoteUpdate] = useState<string | null>(null);
   const hasLoadedRemote = useRef(false);
+  const lastSyncedStateJson = useRef<string | null>(null);
   const saveTimer = useRef<number | null>(null);
   const importFileInput = useRef<HTMLInputElement | null>(null);
 
@@ -59,6 +62,7 @@ export default function App() {
         }
         hasLoadedRemote.current = true;
         if (remote.state) {
+          lastSyncedStateJson.current = JSON.stringify(remote.state);
           setState(remote.state);
           saveTournamentState(remote.state);
           setLastRemoteUpdate(remote.updatedAt);
@@ -89,7 +93,12 @@ export default function App() {
   useEffect(() => {
     saveTournamentState(state);
 
-    if (isReadOnly || !hasLoadedRemote.current || !adminPin.trim()) {
+    if (isReadOnly || !hasLoadedRemote.current || !adminPinVerified) {
+      return;
+    }
+
+    const stateJson = JSON.stringify(state);
+    if (lastSyncedStateJson.current === stateJson) {
       return;
     }
 
@@ -101,6 +110,7 @@ export default function App() {
       try {
         setSyncStatus("Saving to Turso...");
         const updatedAt = await saveRemoteTournamentState(state, adminPin.trim());
+        lastSyncedStateJson.current = stateJson;
         setLastRemoteUpdate(updatedAt);
         setSyncStatus("Saved to Turso");
       } catch {
@@ -113,7 +123,7 @@ export default function App() {
         window.clearTimeout(saveTimer.current);
       }
     };
-  }, [adminPin, isReadOnly, state]);
+  }, [adminPin, adminPinVerified, isReadOnly, state]);
 
   const teamsById = useMemo(() => new Map(state.teams.map((team) => [team.id, team])), [state.teams]);
   const courtStatuses = useMemo(() => getCourtStatuses(state.matches), [state.matches]);
@@ -310,10 +320,32 @@ export default function App() {
 
   function rememberAdminPin(value: string) {
     setAdminPin(value);
-    if (value.trim()) {
-      sessionStorage.setItem(adminPinKey, value.trim());
-    } else {
+    setAdminPinVerified(false);
+    setAdminPinStatus("");
+    if (!value.trim()) {
       sessionStorage.removeItem(adminPinKey);
+    }
+  }
+
+  async function unlockAdmin(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    const trimmedPin = adminPin.trim();
+    if (!trimmedPin) {
+      setAdminPinStatus("Enter the admin PIN to continue.");
+      return;
+    }
+
+    try {
+      setAdminPinStatus("Checking PIN...");
+      await verifyAdminPin(trimmedPin);
+      sessionStorage.setItem(adminPinKey, trimmedPin);
+      setAdminPinVerified(true);
+      setAdminPinStatus("Admin unlocked");
+      setSyncStatus(hasLoadedRemote.current ? "Synced with Turso" : syncStatus);
+    } catch {
+      sessionStorage.removeItem(adminPinKey);
+      setAdminPinVerified(false);
+      setAdminPinStatus("PIN did not unlock admin access.");
     }
   }
 
@@ -325,6 +357,40 @@ export default function App() {
         syncStatus={syncStatus}
         lastRemoteUpdate={lastRemoteUpdate}
       />
+    );
+  }
+
+  if (!adminPinVerified) {
+    return (
+      <main className="app-shell admin-lock-shell">
+        <header className="masthead admin-lock-header">
+          <div>
+            <p className="eyebrow">Century Volleyball</p>
+            <h1>Admin Locked</h1>
+          </div>
+          <div className="status-stack">
+            <div className="stage-pill">{state.stage.replace("_", " ")}</div>
+            <div className="sync-pill">{syncStatus}</div>
+            {lastRemoteUpdate && <div className="sync-time">Updated {new Date(lastRemoteUpdate).toLocaleTimeString()}</div>}
+          </div>
+        </header>
+
+        <form className="admin-lock-panel" onSubmit={(event) => void unlockAdmin(event)}>
+          <label>
+            Admin PIN
+            <input
+              type="password"
+              value={adminPin}
+              placeholder="Required for scorekeeping"
+              autoFocus
+              onChange={(event) => rememberAdminPin(event.target.value)}
+            />
+          </label>
+          <button type="submit">Unlock Admin</button>
+          {adminPinStatus && <p>{adminPinStatus}</p>}
+          <a href="/results">Open public results</a>
+        </form>
+      </main>
     );
   }
 

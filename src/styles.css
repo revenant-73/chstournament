@@ -304,6 +304,42 @@ button:disabled {
   padding: 0 10px 10px;
 }
 
+.admin-lock-shell {
+  min-height: 100vh;
+  display: grid;
+  align-content: start;
+}
+
+.admin-lock-header {
+  margin-bottom: 14px;
+}
+
+.admin-lock-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 360px) auto;
+  gap: 12px;
+  align-items: end;
+  max-width: 720px;
+  border: 1px solid rgba(32, 199, 201, 0.24);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(14, 18, 20, 0.78);
+}
+
+.admin-lock-panel p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #b8c1c6;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.admin-lock-panel a {
+  grid-column: 1 / -1;
+  color: #20c7c9;
+  font-weight: 900;
+}
+
 .admin-bar {
   display: grid;
   grid-template-columns: minmax(220px, 360px) auto;
@@ -932,6 +968,10 @@ select {
   }
 
   .admin-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-lock-panel {
     grid-template-columns: 1fr;
   }
 

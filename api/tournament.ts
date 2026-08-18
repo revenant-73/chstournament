@@ -58,6 +58,16 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       return;
     }
 
+    if (request.method === "POST") {
+      if (!isAdminRequest(request)) {
+        response.status(401).json({ error: "Admin access is required." });
+        return;
+      }
+
+      response.status(200).json({ ok: true });
+      return;
+    }
+
     if (request.method === "PUT") {
       if (!isAdminRequest(request)) {
         response.status(401).json({ error: "Admin access is required." });
@@ -90,7 +100,7 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       return;
     }
 
-    response.setHeader("Allow", "GET, PUT, OPTIONS");
+    response.setHeader("Allow", "GET, POST, PUT, OPTIONS");
     response.status(405).json({ error: "Method not allowed." });
   } catch (error) {
     console.error(error);
@@ -127,6 +137,6 @@ function isAdminRequest(request: ApiRequest): boolean {
 
 function setCorsHeaders(response: ApiResponse) {
   response.setHeader("Access-Control-Allow-Origin", "*");
-  response.setHeader("Access-Control-Allow-Methods", "GET, PUT, OPTIONS");
+  response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Admin-Pin");
 }

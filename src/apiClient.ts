@@ -17,6 +17,19 @@ export async function fetchRemoteTournamentState(): Promise<RemoteSnapshot> {
   return (await response.json()) as RemoteSnapshot;
 }
 
+export async function verifyAdminPin(adminPin: string): Promise<void> {
+  const response = await fetch("/api/tournament", {
+    method: "POST",
+    headers: {
+      "X-Admin-Pin": adminPin
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error("Admin PIN verification failed.");
+  }
+}
+
 export async function saveRemoteTournamentState(state: TournamentState, adminPin: string): Promise<string | null> {
   const response = await fetch("/api/tournament", {
     method: "PUT",
