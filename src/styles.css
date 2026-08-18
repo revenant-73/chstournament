@@ -351,6 +351,42 @@ button:disabled {
   font-weight: 700;
 }
 
+.reseeding-panel {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(207, 213, 216, 0.18);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(14, 18, 20, 0.86);
+}
+
+.seed-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.seed-card {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border: 1px solid rgba(207, 213, 216, 0.14);
+  border-radius: 8px;
+  padding: 10px;
+  background: #101619;
+}
+
+.seed-card strong {
+  color: #f8fbfb;
+}
+
+.seed-card span {
+  color: #b8c1c6;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .tabs {
   display: flex;
   gap: 8px;
@@ -538,7 +574,8 @@ select {
 
 @media (max-width: 920px) {
   .pool-grid,
-  .match-list {
+  .match-list,
+  .seed-grid {
     grid-template-columns: 1fr;
   }
 

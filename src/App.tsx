@@ -3,11 +3,12 @@ import { fetchRemoteTournamentState, saveRemoteTournamentState } from "./apiClie
 import { getCurrentRoute } from "./routes";
 import { clearTournamentState, loadTournamentState, saveTournamentState } from "./storage";
 import { findConferenceConflicts, generateInitialPoolMatches, generateInitialPools } from "./tournament/pools";
+import { areQualifierMatchesComplete, generateFinalBracketMatches, getReseededTeams } from "./tournament/finalBracket";
 import { arePoolPlayMatchesComplete, generateQualifierMatches } from "./tournament/qualifiers";
 import { createDefaultTeams } from "./tournament/setup";
 import { getMatchResult } from "./tournament/scoring";
 import { calculatePoolStandings } from "./tournament/standings";
-import type { Match, PoolId, SetScore, Team, TournamentState } from "./tournament/types";
+import type { Match, PoolId, SetScore, Team, TeamStanding, TournamentState } from "./tournament/types";
 
 const pools: PoolId[] = ["A", "B", "C"];
 const adminPinKey = "century-varsity-admin-pin";
@@ -102,7 +103,10 @@ export default function App() {
   const conferenceConflicts = useMemo(() => findConferenceConflicts(state.teams), [state.teams]);
   const hasGeneratedPools = state.teams.every((team) => team.pool);
   const poolPlayComplete = useMemo(() => arePoolPlayMatchesComplete(state.matches), [state.matches]);
+  const qualifierComplete = useMemo(() => areQualifierMatchesComplete(state.matches), [state.matches]);
+  const seededTeams = useMemo(() => getReseededTeams(state.teams, state.matches), [state.matches, state.teams]);
   const hasQualifierMatches = state.matches.some((match) => match.round === 4);
+  const hasFinalBracketMatches = state.matches.some((match) => match.round >= 5);
 
   function updateTeam(teamId: string, patch: Partial<Team>) {
     setState((current) => ({
@@ -162,6 +166,26 @@ export default function App() {
         ...current,
         stage: "QUALIFIER",
         matches: [...current.matches, ...qualifierMatches]
+      };
+    });
+    setActiveView("scores");
+  }
+
+  function generateFinalBracket() {
+    setState((current) => {
+      if (current.matches.some((match) => match.round >= 5)) {
+        return current;
+      }
+
+      const finalBracketMatches = generateFinalBracketMatches(current.teams, current.matches);
+      if (!finalBracketMatches.length) {
+        return current;
+      }
+
+      return {
+        ...current,
+        stage: "FINAL_BRACKET",
+        matches: [...current.matches, ...finalBracketMatches]
       };
     });
     setActiveView("scores");
@@ -241,9 +265,13 @@ export default function App() {
         <>
           <ProgressionPanel
             poolPlayComplete={poolPlayComplete}
+            qualifierComplete={qualifierComplete}
             hasQualifierMatches={hasQualifierMatches}
+            hasFinalBracketMatches={hasFinalBracketMatches}
             onGenerateQualifiers={generateQualifiers}
+            onGenerateFinalBracket={generateFinalBracket}
           />
+          {seededTeams.length === 9 && <ReseedingPanel seededTeams={seededTeams} />}
           <ScoresView
             matches={sortedMatches(state.matches)}
             teamsById={teamsById}
@@ -258,30 +286,77 @@ export default function App() {
   );
 }
 
+function ReseedingPanel({
+  seededTeams
+}: {
+  seededTeams: Array<{ seed: number; team: Team; standing: TeamStanding }>;
+}) {
+  return (
+    <section className="reseeding-panel">
+      <div className="section-title-row">
+        <h2>Reseeding</h2>
+        <span>Through Round 4</span>
+      </div>
+      <div className="seed-grid">
+        {seededTeams.map(({ seed, team, standing }) => (
+          <article className="seed-card" key={team.id}>
+            <strong>#{seed} {team.name}</strong>
+            <span>
+              {standing.matchesWon}-{standing.matchesLost} | Sets {standing.setsWon}-{standing.setsLost} | Set{" "}
+              {standing.setPercentage.toFixed(3)} | Point {standing.pointPercentage.toFixed(3)}
+            </span>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ProgressionPanel({
   poolPlayComplete,
+  qualifierComplete,
   hasQualifierMatches,
-  onGenerateQualifiers
+  hasFinalBracketMatches,
+  onGenerateQualifiers,
+  onGenerateFinalBracket
 }: {
   poolPlayComplete: boolean;
+  qualifierComplete: boolean;
   hasQualifierMatches: boolean;
+  hasFinalBracketMatches: boolean;
   onGenerateQualifiers: () => void;
+  onGenerateFinalBracket: () => void;
 }) {
+  const canGenerateQualifiers = poolPlayComplete && !hasQualifierMatches;
+  const canGenerateFinalBracket = hasQualifierMatches && qualifierComplete && !hasFinalBracketMatches;
+  const buttonLabel = hasFinalBracketMatches
+    ? "Bracket Added"
+    : hasQualifierMatches
+      ? "Generate Final Bracket"
+      : "Generate Qualifiers";
+
   return (
     <section className="progression-panel">
       <div>
         <p className="eyebrow">Next Step</p>
-        <h2>11:00 AM Qualifier Crossovers</h2>
+        <h2>{hasQualifierMatches ? "12:00 PM Final Bracket" : "11:00 AM Qualifier Crossovers"}</h2>
         <p>
-          {hasQualifierMatches
-            ? "Round 4 has been added to the schedule."
-            : poolPlayComplete
+          {hasFinalBracketMatches
+            ? "Round 5 has been added to the schedule from the #1-#9 reseeding."
+            : hasQualifierMatches
+              ? qualifierComplete
+                ? "Round 4 is complete. Generate #3/#6, #4/#5, and #8/#9."
+                : "Enter all three qualifier scores before the final bracket can be generated."
+              : poolPlayComplete
               ? "Pool play is complete. Generate A2/B3, B2/C3, and C2/A3."
               : "Enter all nine pool-play scores before Round 4 can be generated."}
         </p>
       </div>
-      <button disabled={!poolPlayComplete || hasQualifierMatches} onClick={onGenerateQualifiers}>
-        {hasQualifierMatches ? "Qualifiers Added" : "Generate Qualifiers"}
+      <button
+        disabled={!(canGenerateQualifiers || canGenerateFinalBracket)}
+        onClick={canGenerateFinalBracket ? onGenerateFinalBracket : onGenerateQualifiers}
+      >
+        {buttonLabel}
       </button>
     </section>
   );
@@ -323,7 +398,7 @@ function PublicResultsView({
       <section className="public-section">
         <div className="section-title-row">
           <h2>Schedule & Results</h2>
-          <span>{matches.length ? `${matches.length} pool matches` : "Schedule pending"}</span>
+          <span>{matches.length ? `${matches.length} matches` : "Schedule pending"}</span>
         </div>
         {matches.length ? (
           <div className="public-rounds">
