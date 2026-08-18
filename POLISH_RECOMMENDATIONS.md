@@ -28,3 +28,4 @@ Parent-facing clarity is the main opportunity from here. The app should help som
 
 6. Admin event-ready banner
    - Show a pre-tournament checklist summary: synced, scores reset, teams loaded, pool matches posted, public page live.
+   - Status: implemented.

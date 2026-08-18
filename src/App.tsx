@@ -188,6 +188,7 @@ export default function App() {
   const hasFinalBracketMatches = state.matches.some((match) => match.round >= 5);
   const hasRoundSixMatches = state.matches.some((match) => match.round >= 6);
   const hasRoundSevenMatches = state.matches.some((match) => match.round >= 7);
+  const eventReadyItems = useMemo(() => getEventReadyItems(state, syncStatus), [state, syncStatus]);
 
   function updateTeam(teamId: string, patch: Partial<Team>) {
     setState((current) => ({
@@ -460,6 +461,8 @@ export default function App() {
         </div>
       </header>
 
+      <AdminEventReadyBanner items={eventReadyItems} />
+
       <section className="admin-bar">
         <label>
           Admin PIN
@@ -568,6 +571,31 @@ export default function App() {
         />
       )}
     </main>
+  );
+}
+
+function AdminEventReadyBanner({ items }: { items: EventReadyItem[] }) {
+  const readyCount = items.filter((item) => item.isReady).length;
+  const isEventReady = readyCount === items.length;
+
+  return (
+    <section className={isEventReady ? "event-ready-banner ready" : "event-ready-banner"} aria-label="Event readiness checklist">
+      <div className="event-ready-summary">
+        <p className="eyebrow">Event Check</p>
+        <strong>{isEventReady ? "Ready for first serve" : `${readyCount}/${items.length} ready`}</strong>
+      </div>
+      <div className="event-ready-grid">
+        {items.map((item) => (
+          <div className={item.isReady ? "event-ready-item ready" : "event-ready-item"} key={item.label}>
+            <span aria-hidden="true">{item.isReady ? "✓" : "!"}</span>
+            <div>
+              <strong>{item.label}</strong>
+              <small>{item.detail}</small>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -1446,9 +1474,50 @@ interface PublicPreviewRoundData {
 }
 
 type PublicScheduleRound = { kind: "actual"; round: number; matches: Match[] } | PublicPreviewRoundData;
+type EventReadyItem = {
+  label: string;
+  detail: string;
+  isReady: boolean;
+};
 
 function sortedMatches(matches: Match[]): Match[] {
   return matches.slice().sort((a, b) => a.round - b.round || a.court - b.court);
+}
+
+function getEventReadyItems(state: TournamentState, syncStatus: string): EventReadyItem[] {
+  const namedTeams = state.teams.filter((team) => team.name.trim()).length;
+  const poolMatches = state.matches.filter((match) => match.round <= 3).length;
+  const scoresEntered = state.matches.some((match) => match.sets.some((set) => set.teamA !== null || set.teamB !== null));
+  const syncText = syncStatus.toLowerCase();
+  const isSynced = syncText.includes("turso") || syncText.includes("saved");
+
+  return [
+    {
+      label: "Synced",
+      detail: isSynced ? syncStatus : "Waiting for hosted sync",
+      isReady: isSynced
+    },
+    {
+      label: "Scores reset",
+      detail: scoresEntered ? "Scores have been entered" : "No scores entered",
+      isReady: !scoresEntered
+    },
+    {
+      label: "Teams loaded",
+      detail: `${namedTeams}/9 teams named`,
+      isReady: namedTeams === 9
+    },
+    {
+      label: "Pool matches posted",
+      detail: `${poolMatches}/9 pool matches posted`,
+      isReady: poolMatches === 9
+    },
+    {
+      label: "Public page live",
+      detail: publicResultsUrl.replace("https://", ""),
+      isReady: true
+    }
+  ];
 }
 
 function getPublicScheduleRounds(matches: Match[]): PublicScheduleRound[] {
