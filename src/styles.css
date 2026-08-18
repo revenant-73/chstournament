@@ -329,6 +329,34 @@ button:disabled {
   text-decoration: none;
 }
 
+.backup-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 18px;
+  border: 1px solid rgba(207, 213, 216, 0.18);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(14, 18, 20, 0.72);
+}
+
+.backup-bar strong,
+.backup-bar span {
+  display: block;
+}
+
+.backup-bar span {
+  margin-top: 4px;
+  color: #b8c1c6;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.file-input {
+  display: none;
+}
+
 .progression-panel {
   display: flex;
   align-items: center;
@@ -674,6 +702,7 @@ select {
   .masthead,
   .panel-heading,
   .admin-bar,
+  .backup-bar,
   .progression-panel {
     align-items: stretch;
     flex-direction: column;

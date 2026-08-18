@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createTournamentBackupJson, parseTournamentBackupJson } from "./backup";
 import {
   areQualifierMatchesComplete,
   areRoundFiveMatchesComplete,
@@ -240,6 +241,22 @@ describe("final bracket reseeding", () => {
       "Lower-bracket final runner-up",
       "#8/#9 match loser"
     ]);
+  });
+});
+
+describe("tournament backup", () => {
+  it("exports and imports a wrapped tournament backup", () => {
+    const state = {
+      stage: "POOL_PLAY" as const,
+      teams: generateInitialPools(createDefaultTeams()),
+      matches: generateInitialPoolMatches(generateInitialPools(createDefaultTeams()))
+    };
+
+    expect(parseTournamentBackupJson(createTournamentBackupJson(state))).toEqual(state);
+  });
+
+  it("rejects JSON that is not a tournament state", () => {
+    expect(() => parseTournamentBackupJson('{"hello":"world"}')).toThrow("Century tournament backup");
   });
 });
 

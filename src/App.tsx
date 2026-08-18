@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchRemoteTournamentState, saveRemoteTournamentState } from "./apiClient";
 import { getCurrentRoute } from "./routes";
 import { clearTournamentState, loadTournamentState, saveTournamentState } from "./storage";
+import { createTournamentBackupJson, parseTournamentBackupJson } from "./tournament/backup";
 import { findConferenceConflicts, generateInitialPoolMatches, generateInitialPools } from "./tournament/pools";
 import {
   areQualifierMatchesComplete,
@@ -38,9 +39,11 @@ export default function App() {
   const [activeView, setActiveView] = useState<"setup" | "scores" | "pools">(() => (isReadOnly ? "scores" : "setup"));
   const [adminPin, setAdminPin] = useState(() => sessionStorage.getItem(adminPinKey) ?? "");
   const [syncStatus, setSyncStatus] = useState("Local draft");
+  const [backupStatus, setBackupStatus] = useState("");
   const [lastRemoteUpdate, setLastRemoteUpdate] = useState<string | null>(null);
   const hasLoadedRemote = useRef(false);
   const saveTimer = useRef<number | null>(null);
+  const importFileInput = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -164,7 +167,42 @@ export default function App() {
   function resetTournament() {
     clearTournamentState();
     setState(createInitialState());
+    setBackupStatus("");
     setActiveView("setup");
+  }
+
+  function exportBackup() {
+    const blob = new Blob([createTournamentBackupJson(state)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `century-varsity-tournament-${dateStamp}.json`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setBackupStatus("Backup exported");
+  }
+
+  async function importBackup(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    try {
+      const importedState = parseTournamentBackupJson(await file.text());
+      setState(importedState);
+      saveTournamentState(importedState);
+      setBackupStatus("Backup imported");
+      setActiveView("scores");
+    } catch (error) {
+      setBackupStatus(error instanceof Error ? error.message : "Backup import failed");
+    } finally {
+      if (importFileInput.current) {
+        importFileInput.current.value = "";
+      }
+    }
   }
 
   function generateQualifiers() {
@@ -290,6 +328,29 @@ export default function App() {
           />
         </label>
         <a href="/results">Open public results</a>
+      </section>
+
+      <section className="backup-bar">
+        <div>
+          <p className="eyebrow">Emergency Backup</p>
+          <strong>Save or restore the full tournament state</strong>
+          {backupStatus && <span>{backupStatus}</span>}
+        </div>
+        <div className="action-row">
+          <button className="secondary" onClick={exportBackup}>
+            Export JSON
+          </button>
+          <button className="secondary" onClick={() => importFileInput.current?.click()}>
+            Import JSON
+          </button>
+          <input
+            ref={importFileInput}
+            className="file-input"
+            type="file"
+            accept="application/json,.json"
+            onChange={(event) => void importBackup(event.currentTarget.files?.[0] ?? null)}
+          />
+        </div>
       </section>
 
       <nav className="tabs" aria-label="Primary views">
