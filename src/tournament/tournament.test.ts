@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   areQualifierMatchesComplete,
   areRoundFiveMatchesComplete,
+  areRoundSixMatchesComplete,
   generateFinalBracketMatches,
+  generateRoundSevenMatches,
   generateRoundSixMatches,
   getReseededTeams
 } from "./finalBracket";
@@ -202,6 +204,20 @@ describe("final bracket reseeding", () => {
     expect(matchSeeds(roundSixMatches[1], teams)).toEqual({ teamA: 2, teamB: 3, workTeam: 6 });
     expect(matchSeeds(roundSixMatches[2], teams)).toEqual({ teamA: 7, teamB: 8, workTeam: 9 });
   });
+
+  it("generates the 2:00 PM Round 7 placement matches from Round 6 results", () => {
+    const teams = generateInitialPools(createDefaultTeams());
+    const matches = completedMatchesThroughRoundSix(teams);
+    const roundSevenMatches = generateRoundSevenMatches(teams, matches);
+
+    expect(areRoundSixMatchesComplete(matches)).toBe(true);
+    expect(roundSevenMatches).toHaveLength(3);
+    expect(roundSevenMatches.map((match) => match.scheduledTime)).toEqual(["2:00 PM", "2:00 PM", "2:00 PM"]);
+    expect(roundSevenMatches.map((match) => match.label)).toEqual(["Championship", "3rd Place", "5th Place"]);
+    expect(matchSeeds(roundSevenMatches[0], teams)).toEqual({ teamA: 1, teamB: 2, workTeam: undefined });
+    expect(matchSeeds(roundSevenMatches[1], teams)).toEqual({ teamA: 4, teamB: 3, workTeam: undefined });
+    expect(matchSeeds(roundSevenMatches[2], teams)).toEqual({ teamA: 6, teamB: 5, workTeam: undefined });
+  });
 });
 
 function seedsInPool(teams: Team[], pool: PoolId): number[] {
@@ -275,4 +291,23 @@ function completedMatchesThroughRoundFive(teams: Team[]): Match[] {
   });
 
   return [...matchesThroughQualifiers, ...roundFiveMatches];
+}
+
+function completedMatchesThroughRoundSix(teams: Team[]): Match[] {
+  const matchesThroughRoundFive = completedMatchesThroughRoundFive(teams);
+  const roundSixMatches = generateRoundSixMatches(teams, matchesThroughRoundFive).map((match) => {
+    const teamASeed = teams.find((team) => team.id === match.teamAId)?.originalSeed ?? 99;
+    const teamBSeed = teams.find((team) => team.id === match.teamBId)?.originalSeed ?? 99;
+    return teamASeed < teamBSeed
+      ? withSets(match, [
+          [25, 18],
+          [25, 18]
+        ])
+      : withSets(match, [
+          [18, 25],
+          [18, 25]
+        ]);
+  });
+
+  return [...matchesThroughRoundFive, ...roundSixMatches];
 }

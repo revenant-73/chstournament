@@ -6,7 +6,9 @@ import { findConferenceConflicts, generateInitialPoolMatches, generateInitialPoo
 import {
   areQualifierMatchesComplete,
   areRoundFiveMatchesComplete,
+  areRoundSixMatchesComplete,
   generateFinalBracketMatches,
+  generateRoundSevenMatches,
   generateRoundSixMatches,
   getReseededTeams
 } from "./tournament/finalBracket";
@@ -111,10 +113,12 @@ export default function App() {
   const poolPlayComplete = useMemo(() => arePoolPlayMatchesComplete(state.matches), [state.matches]);
   const qualifierComplete = useMemo(() => areQualifierMatchesComplete(state.matches), [state.matches]);
   const roundFiveComplete = useMemo(() => areRoundFiveMatchesComplete(state.matches), [state.matches]);
+  const roundSixComplete = useMemo(() => areRoundSixMatchesComplete(state.matches), [state.matches]);
   const seededTeams = useMemo(() => getReseededTeams(state.teams, state.matches), [state.matches, state.teams]);
   const hasQualifierMatches = state.matches.some((match) => match.round === 4);
   const hasFinalBracketMatches = state.matches.some((match) => match.round >= 5);
   const hasRoundSixMatches = state.matches.some((match) => match.round >= 6);
+  const hasRoundSevenMatches = state.matches.some((match) => match.round >= 7);
 
   function updateTeam(teamId: string, patch: Partial<Team>) {
     setState((current) => ({
@@ -218,6 +222,25 @@ export default function App() {
     setActiveView("scores");
   }
 
+  function generateRoundSeven() {
+    setState((current) => {
+      if (current.matches.some((match) => match.round >= 7)) {
+        return current;
+      }
+
+      const roundSevenMatches = generateRoundSevenMatches(current.teams, current.matches);
+      if (!roundSevenMatches.length) {
+        return current;
+      }
+
+      return {
+        ...current,
+        matches: [...current.matches, ...roundSevenMatches]
+      };
+    });
+    setActiveView("scores");
+  }
+
   function rememberAdminPin(value: string) {
     setAdminPin(value);
     if (value.trim()) {
@@ -294,12 +317,15 @@ export default function App() {
             poolPlayComplete={poolPlayComplete}
             qualifierComplete={qualifierComplete}
             roundFiveComplete={roundFiveComplete}
+            roundSixComplete={roundSixComplete}
             hasQualifierMatches={hasQualifierMatches}
             hasFinalBracketMatches={hasFinalBracketMatches}
             hasRoundSixMatches={hasRoundSixMatches}
+            hasRoundSevenMatches={hasRoundSevenMatches}
             onGenerateQualifiers={generateQualifiers}
             onGenerateFinalBracket={generateFinalBracket}
             onGenerateRoundSix={generateRoundSix}
+            onGenerateRoundSeven={generateRoundSeven}
           />
           {seededTeams.length === 9 && <ReseedingPanel seededTeams={seededTeams} />}
           <ScoresView
@@ -346,34 +372,45 @@ function ProgressionPanel({
   poolPlayComplete,
   qualifierComplete,
   roundFiveComplete,
+  roundSixComplete,
   hasQualifierMatches,
   hasFinalBracketMatches,
   hasRoundSixMatches,
+  hasRoundSevenMatches,
   onGenerateQualifiers,
   onGenerateFinalBracket,
-  onGenerateRoundSix
+  onGenerateRoundSix,
+  onGenerateRoundSeven
 }: {
   poolPlayComplete: boolean;
   qualifierComplete: boolean;
   roundFiveComplete: boolean;
+  roundSixComplete: boolean;
   hasQualifierMatches: boolean;
   hasFinalBracketMatches: boolean;
   hasRoundSixMatches: boolean;
+  hasRoundSevenMatches: boolean;
   onGenerateQualifiers: () => void;
   onGenerateFinalBracket: () => void;
   onGenerateRoundSix: () => void;
+  onGenerateRoundSeven: () => void;
 }) {
   const canGenerateQualifiers = poolPlayComplete && !hasQualifierMatches;
   const canGenerateFinalBracket = hasQualifierMatches && qualifierComplete && !hasFinalBracketMatches;
   const canGenerateRoundSix = hasFinalBracketMatches && roundFiveComplete && !hasRoundSixMatches;
-  const buttonLabel = hasRoundSixMatches
-    ? "Round 6 Added"
+  const canGenerateRoundSeven = hasRoundSixMatches && roundSixComplete && !hasRoundSevenMatches;
+  const buttonLabel = hasRoundSevenMatches
+    ? "Round 7 Added"
+    : hasRoundSixMatches
+      ? "Generate Round 7"
     : hasFinalBracketMatches
       ? "Generate Round 6"
     : hasQualifierMatches
       ? "Generate Final Bracket"
       : "Generate Qualifiers";
-  const buttonAction = canGenerateRoundSix
+  const buttonAction = canGenerateRoundSeven
+    ? onGenerateRoundSeven
+    : canGenerateRoundSix
     ? onGenerateRoundSix
     : canGenerateFinalBracket
       ? onGenerateFinalBracket
@@ -384,15 +421,21 @@ function ProgressionPanel({
       <div>
         <p className="eyebrow">Next Step</p>
         <h2>
-          {hasFinalBracketMatches
+          {hasRoundSixMatches
+            ? "2:00 PM Finals"
+            : hasFinalBracketMatches
             ? "1:00 PM Semifinals"
             : hasQualifierMatches
               ? "12:00 PM Final Bracket"
               : "11:00 AM Qualifier Crossovers"}
         </h2>
         <p>
-          {hasRoundSixMatches
-            ? "Round 6 has been added with Round 5 losers assigned to work."
+          {hasRoundSevenMatches
+            ? "Round 7 has been added for the championship, 3rd place, and 5th place matches."
+            : hasRoundSixMatches
+            ? roundSixComplete
+              ? "Round 6 is complete. Generate the 2:00 PM championship, 3rd place, and 5th place matches."
+              : "Enter all three Round 6 scores before Round 7 can be generated."
             : hasFinalBracketMatches
             ? roundFiveComplete
               ? "Round 5 is complete. Generate the 1:00 PM semifinal and lower-bracket matches."
@@ -407,7 +450,7 @@ function ProgressionPanel({
         </p>
       </div>
       <button
-        disabled={!(canGenerateQualifiers || canGenerateFinalBracket || canGenerateRoundSix)}
+        disabled={!(canGenerateQualifiers || canGenerateFinalBracket || canGenerateRoundSix || canGenerateRoundSeven)}
         onClick={buttonAction}
       >
         {buttonLabel}

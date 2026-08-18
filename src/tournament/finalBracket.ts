@@ -114,6 +114,61 @@ export function generateRoundSixMatches(teams: Team[], matches: Match[]): Match[
   ].filter((match): match is Match => Boolean(match));
 }
 
+export function areRoundSixMatchesComplete(matches: Match[]): boolean {
+  const roundSixMatches = getRoundSixMatches(matches);
+  return roundSixMatches.length === 3 && roundSixMatches.every((match) => getMatchResult(match));
+}
+
+export function generateRoundSevenMatches(teams: Team[], matches: Match[]): Match[] {
+  const roundFiveMatches = getRoundFiveMatches(matches);
+  const roundSixMatches = getRoundSixMatches(matches);
+  if (roundFiveMatches.length !== 3 || roundSixMatches.length !== 3 || !areRoundSixMatchesComplete(matches)) {
+    return [];
+  }
+
+  const teamsById = new Map(teams.map((team) => [team.id, team]));
+  const roundFiveCourtOneResult = getMatchResult(roundFiveMatches[0]);
+  const roundFiveCourtTwoResult = getMatchResult(roundFiveMatches[1]);
+  const semifinalOneResult = getMatchResult(roundSixMatches[0]);
+  const semifinalTwoResult = getMatchResult(roundSixMatches[1]);
+  if (!roundFiveCourtOneResult || !roundFiveCourtTwoResult || !semifinalOneResult || !semifinalTwoResult) {
+    return [];
+  }
+
+  return [
+    createScheduledMatch(
+      "final-round-7-court-1",
+      7,
+      1,
+      "Championship",
+      teamsById.get(semifinalOneResult.winnerId),
+      teamsById.get(semifinalTwoResult.winnerId),
+      undefined,
+      "2:00 PM"
+    ),
+    createScheduledMatch(
+      "final-round-7-court-2",
+      7,
+      2,
+      "3rd Place",
+      teamsById.get(semifinalOneResult.loserId),
+      teamsById.get(semifinalTwoResult.loserId),
+      undefined,
+      "2:00 PM"
+    ),
+    createScheduledMatch(
+      "final-round-7-court-3",
+      7,
+      3,
+      "5th Place",
+      teamsById.get(roundFiveCourtOneResult.loserId),
+      teamsById.get(roundFiveCourtTwoResult.loserId),
+      undefined,
+      "2:00 PM"
+    )
+  ].filter((match): match is Match => Boolean(match));
+}
+
 function rankSeedGroup(teams: Team[], matches: Match[], startingSeed: number): TournamentSeed[] {
   return teams
     .map((team) => createCumulativeStanding(team, matches))
@@ -186,7 +241,7 @@ function createScheduledMatch(
   worker?: Team,
   scheduledTime = "12:00 PM"
 ): Match | null {
-  if (!teamA || !teamB || !worker) {
+  if (!teamA || !teamB) {
     return null;
   }
 
@@ -197,7 +252,7 @@ function createScheduledMatch(
     label,
     teamAId: teamA.id,
     teamBId: teamB.id,
-    workTeamId: worker.id,
+    workTeamId: worker?.id,
     scheduledTime,
     sets: createEmptySets()
   };
@@ -205,4 +260,8 @@ function createScheduledMatch(
 
 function getRoundFiveMatches(matches: Match[]): Match[] {
   return matches.filter((match) => match.round === 5).sort((a, b) => a.court - b.court);
+}
+
+function getRoundSixMatches(matches: Match[]): Match[] {
+  return matches.filter((match) => match.round === 6).sort((a, b) => a.court - b.court);
 }
