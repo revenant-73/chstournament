@@ -191,9 +191,9 @@ describe("final bracket reseeding", () => {
     expect(seededTeams.map((seededTeam) => seededTeam.team.originalSeed)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     expect(finalMatches).toHaveLength(3);
     expect(finalMatches.map((match) => match.scheduledTime)).toEqual(["12:00 PM", "12:00 PM", "12:00 PM"]);
-    expect(matchSeeds(finalMatches[0], teams)).toEqual({ teamA: 3, teamB: 6, workTeam: 1 });
-    expect(matchSeeds(finalMatches[1], teams)).toEqual({ teamA: 4, teamB: 5, workTeam: 2 });
-    expect(matchSeeds(finalMatches[2], teams)).toEqual({ teamA: 8, teamB: 9, workTeam: 7 });
+    expect(matchSeeds(finalMatches[0], teams)).toEqual({ teamA: 3, teamB: 6, workTeam: undefined, workTeamName: "Century JV" });
+    expect(matchSeeds(finalMatches[1], teams)).toEqual({ teamA: 4, teamB: 5, workTeam: undefined, workTeamName: "Century JV" });
+    expect(matchSeeds(finalMatches[2], teams)).toEqual({ teamA: 8, teamB: 9, workTeam: 7, workTeamName: undefined });
   });
 
   it("generates the 1:00 PM Round 6 matches from Round 5 results", () => {
@@ -204,9 +204,9 @@ describe("final bracket reseeding", () => {
     expect(areRoundFiveMatchesComplete(matches)).toBe(true);
     expect(roundSixMatches).toHaveLength(3);
     expect(roundSixMatches.map((match) => match.scheduledTime)).toEqual(["1:00 PM", "1:00 PM", "1:00 PM"]);
-    expect(matchSeeds(roundSixMatches[0], teams)).toEqual({ teamA: 1, teamB: 4, workTeam: 5 });
-    expect(matchSeeds(roundSixMatches[1], teams)).toEqual({ teamA: 2, teamB: 3, workTeam: 6 });
-    expect(matchSeeds(roundSixMatches[2], teams)).toEqual({ teamA: 7, teamB: 8, workTeam: 9 });
+    expect(matchSeeds(roundSixMatches[0], teams)).toEqual({ teamA: 1, teamB: 4, workTeam: undefined, workTeamName: "Century JV" });
+    expect(matchSeeds(roundSixMatches[1], teams)).toEqual({ teamA: 2, teamB: 3, workTeam: undefined, workTeamName: "Century JV" });
+    expect(matchSeeds(roundSixMatches[2], teams)).toEqual({ teamA: 7, teamB: 8, workTeam: 9, workTeamName: undefined });
   });
 
   it("generates the 2:00 PM Round 7 placement matches from Round 6 results", () => {
@@ -218,9 +218,9 @@ describe("final bracket reseeding", () => {
     expect(roundSevenMatches).toHaveLength(3);
     expect(roundSevenMatches.map((match) => match.scheduledTime)).toEqual(["2:00 PM", "2:00 PM", "2:00 PM"]);
     expect(roundSevenMatches.map((match) => match.label)).toEqual(["Championship", "3rd Place", "5th Place"]);
-    expect(matchSeeds(roundSevenMatches[0], teams)).toEqual({ teamA: 1, teamB: 2, workTeam: undefined });
-    expect(matchSeeds(roundSevenMatches[1], teams)).toEqual({ teamA: 4, teamB: 3, workTeam: undefined });
-    expect(matchSeeds(roundSevenMatches[2], teams)).toEqual({ teamA: 6, teamB: 5, workTeam: 8 });
+    expect(matchSeeds(roundSevenMatches[0], teams)).toEqual({ teamA: 1, teamB: 2, workTeam: undefined, workTeamName: "Century JV" });
+    expect(matchSeeds(roundSevenMatches[1], teams)).toEqual({ teamA: 4, teamB: 3, workTeam: undefined, workTeamName: "Century JV" });
+    expect(matchSeeds(roundSevenMatches[2], teams)).toEqual({ teamA: 6, teamB: 5, workTeam: 8, workTeamName: undefined });
   });
 
   it("calculates final 1st through 9th placements after Round 7 scores", () => {
@@ -315,11 +315,13 @@ function seedsInPool(teams: Team[], pool: PoolId): number[] {
 }
 
 function matchSeeds(match: Match, teams: Team[]) {
-  return {
+  const summary = {
     teamA: teams.find((team) => team.id === match.teamAId)?.originalSeed,
     teamB: teams.find((team) => team.id === match.teamBId)?.originalSeed,
     workTeam: teams.find((team) => team.id === match.workTeamId)?.originalSeed
   };
+
+  return match.round >= 5 ? { ...summary, workTeamName: match.workTeamName } : summary;
 }
 
 function withSets(match: Match, scores: Array<[number, number]>): Match {
@@ -384,3 +386,4 @@ function completeLowerSeedWin(match: Match, teams: Team[]): Match {
           [18, 25]
         ]);
 }
+

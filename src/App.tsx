@@ -44,8 +44,8 @@ const publicFlowPreviewRounds = [
     title: "Bracket openers",
     note: "After Round 4, teams are reseeded #1 through #9.",
     matches: [
-      { court: 1, label: "#3 vs #6", work: "#1" },
-      { court: 2, label: "#4 vs #5", work: "#2" },
+      { court: 1, label: "#3 vs #6", work: "Century JV" },
+      { court: 2, label: "#4 vs #5", work: "Century JV" },
       { court: 3, label: "#8 vs #9", work: "#7" }
     ]
   },
@@ -53,10 +53,10 @@ const publicFlowPreviewRounds = [
     round: 6,
     time: "1:00 PM",
     title: "Semifinals and lower bracket",
-    note: "Work team is usually the team that lost on that court in Round 5.",
+    note: "Century JV works Courts 1-2. The loser of the noon Court 3 match works Court 3.",
     matches: [
-      { court: 1, label: "#1 vs Winner #4/#5", work: "Loser of Court 2" },
-      { court: 2, label: "#2 vs Winner #3/#6", work: "Loser of Court 1" },
+      { court: 1, label: "#1 vs Winner #4/#5", work: "Century JV" },
+      { court: 2, label: "#2 vs Winner #3/#6", work: "Century JV" },
       { court: 3, label: "#7 vs Winner #8/#9", work: "Loser of Court 3" }
     ]
   },
@@ -66,9 +66,9 @@ const publicFlowPreviewRounds = [
     title: "Placement matches",
     note: "Championship, 3rd place, and 5th place are played at the same time.",
     matches: [
-      { court: 1, label: "Championship", work: "Previous loser if available" },
-      { court: 2, label: "3rd Place", work: "Previous loser if available" },
-      { court: 3, label: "5th Place", work: "Previous loser if available" }
+      { court: 1, label: "Championship", work: "Century JV" },
+      { court: 2, label: "3rd Place", work: "Century JV" },
+      { court: 3, label: "5th Place", work: "Loser of 1:00 match" }
     ]
   }
 ];
@@ -214,7 +214,7 @@ export default function App() {
     }));
   }
 
-  function updateMatch(matchId: string, patch: Partial<Pick<Match, "teamAId" | "teamBId" | "workTeamId" | "scheduledTime" | "label">>) {
+  function updateMatch(matchId: string, patch: Partial<Pick<Match, "teamAId" | "teamBId" | "workTeamId" | "workTeamName" | "scheduledTime" | "label">>) {
     setState((current) => ({
       ...current,
       matches: current.matches.map((match) => {
@@ -650,7 +650,7 @@ function DashboardMatchBlock({
 
   const teamA = teamsById.get(match.teamAId)?.name ?? "TBD";
   const teamB = teamsById.get(match.teamBId)?.name ?? "TBD";
-  const worker = match.workTeamId ? teamsById.get(match.workTeamId)?.name : "TBD";
+  const worker = getWorkTeamName(match, teamsById);
 
   return (
     <div className="dashboard-match">
@@ -843,7 +843,7 @@ function VisualBracketNode({
   const result = match ? getMatchResult(match) : null;
   const teamA = match ? teamsById.get(match.teamAId) : undefined;
   const teamB = match ? teamsById.get(match.teamBId) : undefined;
-  const worker = match?.workTeamId ? teamsById.get(match.workTeamId)?.name : "TBD";
+  const worker = match ? getWorkTeamName(match, teamsById) : "TBD";
   const isDestination = fallbackLabel === "Championship" || fallbackLabel === "3rd Place" || fallbackLabel === "5th Place";
   const nodeClassName = [
     "visual-bracket-node",
@@ -880,7 +880,7 @@ function BracketMatchCard({ match, teamsById }: { match: Match; teamsById: Map<s
   const result = getMatchResult(match);
   const teamA = teamsById.get(match.teamAId);
   const teamB = teamsById.get(match.teamBId);
-  const worker = match.workTeamId ? teamsById.get(match.workTeamId)?.name : "TBD";
+  const worker = getWorkTeamName(match, teamsById);
 
   return (
     <article className={result ? "bracket-match complete" : "bracket-match"}>
@@ -1311,7 +1311,7 @@ function PublicMatchCard({ match, teamsById }: { match: Match; teamsById: Map<st
         )}
         <span className={result ? "score-summary" : ""}>{scoreText}</span>
       </div>
-      <div className="public-worker">Work: {match.workTeamId ? teamsById.get(match.workTeamId)?.name : "TBD"}</div>
+      <div className="public-worker">Work: {getWorkTeamName(match, teamsById)}</div>
     </div>
   );
 }
@@ -1413,7 +1413,7 @@ interface ScoresViewProps {
   onScoreChange: (matchId: string, setIndex: number, side: keyof SetScore, value: string) => void;
   onMatchChange: (
     matchId: string,
-    patch: Partial<Pick<Match, "teamAId" | "teamBId" | "workTeamId" | "scheduledTime" | "label">>
+    patch: Partial<Pick<Match, "teamAId" | "teamBId" | "workTeamId" | "workTeamName" | "scheduledTime" | "label">>
   ) => void;
 }
 
@@ -1449,7 +1449,7 @@ function ScoresView({ matches, teams, teamsById, isReadOnly, onScoreChange, onMa
             onScoreChange={onScoreChange}
           />
           <MatchOutcome match={match} teamsById={teamsById} />
-          <p className="work-team">Work team: {match.workTeamId ? teamsById.get(match.workTeamId)?.name : "TBD"}</p>
+          <p className="work-team">Work team: {getWorkTeamName(match, teamsById)}</p>
           {!isReadOnly && <DirectorOverride match={match} teams={teams} onMatchChange={onMatchChange} />}
         </article>
       ))}
@@ -1466,7 +1466,7 @@ function DirectorOverride({
   teams: Team[];
   onMatchChange: (
     matchId: string,
-    patch: Partial<Pick<Match, "teamAId" | "teamBId" | "workTeamId" | "scheduledTime" | "label">>
+    patch: Partial<Pick<Match, "teamAId" | "teamBId" | "workTeamId" | "workTeamName" | "scheduledTime" | "label">>
   ) => void;
 }) {
   const sortedTeams = teams.slice().sort((a, b) => a.originalSeed - b.originalSeed);
@@ -1498,10 +1498,11 @@ function DirectorOverride({
         <label>
           Work Team
           <select
-            value={match.workTeamId ?? ""}
-            onChange={(event) => onMatchChange(match.id, { workTeamId: event.target.value || undefined })}
+            value={match.workTeamName ? "__external__" : (match.workTeamId ?? "")}
+            onChange={(event) => onMatchChange(match.id, { workTeamId: event.target.value || undefined, workTeamName: undefined })}
           >
             <option value="">TBD</option>
+            {match.workTeamName && <option value="__external__">{match.workTeamName}</option>}
             {sortedTeams.map((team) => (
               <option key={team.id} value={team.id}>
                 {team.name}
@@ -1702,6 +1703,10 @@ function groupMatchesByRound(matches: Match[]): Array<[number, Match[]]> {
   ]);
 }
 
+function getWorkTeamName(match: Match, teamsById: Map<string, Team>): string {
+  return match.workTeamName ?? (match.workTeamId ? teamsById.get(match.workTeamId)?.name : undefined) ?? "TBD";
+}
+
 function getScoreText(match: Match): string {
   const playedSets = match.sets.filter((set) => set.teamA !== null && set.teamB !== null);
   if (!playedSets.length) {
@@ -1749,3 +1754,4 @@ function formatPlace(place: number): string {
   }
   return `${place}th`;
 }
+

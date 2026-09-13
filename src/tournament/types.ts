@@ -24,6 +24,7 @@ export interface Match {
   teamAId: string;
   teamBId: string;
   workTeamId?: string;
+  workTeamName?: string;
   scheduledTime: string;
   sets: SetScore[];
 }
@@ -54,3 +55,4 @@ export interface TournamentState {
   teams: Team[];
   matches: Match[];
 }
+

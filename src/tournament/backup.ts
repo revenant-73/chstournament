@@ -69,6 +69,7 @@ function isMatch(value: unknown): value is Match {
     typeof value.teamAId === "string" &&
     typeof value.teamBId === "string" &&
     (value.workTeamId === undefined || typeof value.workTeamId === "string") &&
+    (value.workTeamName === undefined || typeof value.workTeamName === "string") &&
     typeof value.scheduledTime === "string" &&
     Array.isArray(value.sets) &&
     value.sets.every(isSetScore)
@@ -86,3 +87,4 @@ function isSetScore(value: unknown): value is SetScore {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
+

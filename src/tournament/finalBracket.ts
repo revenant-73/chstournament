@@ -9,6 +9,8 @@ export interface TournamentSeed {
   standing: TeamStanding;
 }
 
+const outsideWorkCrewName = "Century JV";
+
 export interface FinalPlacement {
   place: number;
   team: Team;
@@ -59,8 +61,8 @@ export function generateFinalBracketMatches(teams: Team[], matches: Match[]): Ma
   const seeds = new Map(seededTeams.map((seededTeam) => [seededTeam.seed, seededTeam.team]));
 
   return [
-    createFinalBracketMatch(1, "#3 vs #6", seeds.get(3), seeds.get(6), seeds.get(1)),
-    createFinalBracketMatch(2, "#4 vs #5", seeds.get(4), seeds.get(5), seeds.get(2)),
+    createFinalBracketMatch(1, "#3 vs #6", seeds.get(3), seeds.get(6), undefined, outsideWorkCrewName),
+    createFinalBracketMatch(2, "#4 vs #5", seeds.get(4), seeds.get(5), undefined, outsideWorkCrewName),
     createFinalBracketMatch(3, "#8 vs #9", seeds.get(8), seeds.get(9), seeds.get(7))
   ].filter((match): match is Match => Boolean(match));
 }
@@ -94,8 +96,9 @@ export function generateRoundSixMatches(teams: Team[], matches: Match[]): Match[
       "#1 vs Winner #4/#5",
       seeds.get(1),
       teamsById.get(courtTwoResult.winnerId),
-      teamsById.get(courtTwoResult.loserId),
-      "1:00 PM"
+      undefined,
+      "1:00 PM",
+      outsideWorkCrewName
     ),
     createScheduledMatch(
       "final-round-6-court-2",
@@ -104,8 +107,9 @@ export function generateRoundSixMatches(teams: Team[], matches: Match[]): Match[
       "#2 vs Winner #3/#6",
       seeds.get(2),
       teamsById.get(courtOneResult.winnerId),
-      teamsById.get(courtOneResult.loserId),
-      "1:00 PM"
+      undefined,
+      "1:00 PM",
+      outsideWorkCrewName
     ),
     createScheduledMatch(
       "final-round-6-court-3",
@@ -161,8 +165,9 @@ export function generateRoundSevenMatches(teams: Team[], matches: Match[]): Matc
       "Championship",
       championshipTeamA,
       championshipTeamB,
-      getAvailableSameCourtWorker(roundSixMatches[0], teamsById, roundSevenTeamIds),
-      "2:00 PM"
+      undefined,
+      "2:00 PM",
+      outsideWorkCrewName
     ),
     createScheduledMatch(
       "final-round-7-court-2",
@@ -171,8 +176,9 @@ export function generateRoundSevenMatches(teams: Team[], matches: Match[]): Matc
       "3rd Place",
       thirdPlaceTeamA,
       thirdPlaceTeamB,
-      getAvailableSameCourtWorker(roundSixMatches[1], teamsById, roundSevenTeamIds),
-      "2:00 PM"
+      undefined,
+      "2:00 PM",
+      outsideWorkCrewName
     ),
     createScheduledMatch(
       "final-round-7-court-3",
@@ -285,9 +291,10 @@ function createFinalBracketMatch(
   label: string,
   teamA?: Team,
   teamB?: Team,
-  worker?: Team
+  worker?: Team,
+  workTeamName?: string
 ): Match | null {
-  return createScheduledMatch(`final-round-5-court-${court}`, 5, court, label, teamA, teamB, worker, "12:00 PM");
+  return createScheduledMatch(`final-round-5-court-${court}`, 5, court, label, teamA, teamB, worker, "12:00 PM", workTeamName);
 }
 
 function createScheduledMatch(
@@ -298,7 +305,8 @@ function createScheduledMatch(
   teamA?: Team,
   teamB?: Team,
   worker?: Team,
-  scheduledTime = "12:00 PM"
+  scheduledTime = "12:00 PM",
+  workTeamName?: string
 ): Match | null {
   if (!teamA || !teamB) {
     return null;
@@ -312,6 +320,7 @@ function createScheduledMatch(
     teamAId: teamA.id,
     teamBId: teamB.id,
     workTeamId: worker?.id,
+    workTeamName,
     scheduledTime,
     sets: createEmptySets()
   };
@@ -345,3 +354,4 @@ function createFinalPlacement(place: number, team: Team | undefined, source: str
 
   return { place, team, source };
 }
+
