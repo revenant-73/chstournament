@@ -721,11 +721,19 @@ function BracketView({
   );
 }
 
-function VisualBracketPanel({ matches, teamsById }: { matches: Match[]; teamsById: Map<string, Team> }) {
+function VisualBracketPanel({
+  matches,
+  teamsById,
+  showPlaceholders = false
+}: {
+  matches: Match[];
+  teamsById: Map<string, Team>;
+  showPlaceholders?: boolean;
+}) {
   const getMatch = (round: number, court: number) => matches.find((match) => match.round === round && match.court === court);
   const visualMatchCount = matches.filter((match) => match.round >= 5 && match.round <= 7).length;
 
-  if (!visualMatchCount) {
+  if (!visualMatchCount && !showPlaceholders) {
     return null;
   }
 
@@ -1058,8 +1066,10 @@ function PublicResultsView({
   const hasPools = state.teams.every((team) => team.pool);
   const finalPlacements = getFinalPlacements(state.teams, state.matches);
   const publicRounds = getPublicScheduleRounds(matches);
-  const postedRounds = publicRounds.filter((round) => round.kind === "actual");
-  const previewRounds = publicRounds.filter((round): round is PublicPreviewRoundData => round.kind === "preview");
+  const postedRounds = publicRounds.filter((round): round is Extract<PublicScheduleRound, { kind: "actual" }> => round.kind === "actual" && round.round < 5);
+  const hasFinalBracketPreview = publicRounds.some((round) => round.kind === "preview" && round.round >= 5 && round.round <= 7);
+  const hasPublicFinalBracket = hasFinalBracketPreview || matches.some((match) => match.round >= 5 && match.round <= 7);
+  const previewRounds = publicRounds.filter((round): round is PublicPreviewRoundData => round.kind === "preview" && round.round < 5);
   const previewMatchCount = publicRounds.reduce(
     (total, round) => total + (round.kind === "preview" ? round.matches.length : 0),
     0
@@ -1099,6 +1109,7 @@ function PublicResultsView({
         </div>
         {matches.length ? (
           <div className="public-rounds">
+            {hasPublicFinalBracket && <PublicFinalBracketPanel matches={matches} teamsById={teamsById} />}
             {postedRounds.map((round) => (
               <PublicActualRound key={round.round} round={round.round} matches={round.matches} teamsById={teamsById} />
             ))}
@@ -1173,6 +1184,20 @@ function QrCodePage() {
   );
 }
 
+function PublicFinalBracketPanel({ matches, teamsById }: { matches: Match[]; teamsById: Map<string, Team> }) {
+  return (
+    <section className="public-final-bracket" aria-labelledby="public-final-bracket-title">
+      <div className="public-final-bracket-heading">
+        <div>
+          <p className="eyebrow">Final Bracket</p>
+          <h3 id="public-final-bracket-title">Rounds 5-7</h3>
+        </div>
+        <span>Swipe to follow the bracket</span>
+      </div>
+      <VisualBracketPanel matches={matches} teamsById={teamsById} showPlaceholders />
+    </section>
+  );
+}
 function PublicFlowPreviewSection({ rounds }: { rounds: PublicPreviewRoundData[] }) {
   const previewMatchCount = rounds.reduce((total, round) => total + round.matches.length, 0);
 

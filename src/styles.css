@@ -2297,3 +2297,201 @@ select {
     width: fit-content;
   }
 }
+
+.public-final-bracket {
+  overflow: hidden;
+  border: 1px solid var(--public-line);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(53, 23, 99, 0.06);
+}
+
+.public-final-bracket-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--public-line);
+  padding: 14px 16px;
+  background: linear-gradient(90deg, #ffffff, #faf7ff);
+}
+
+.public-final-bracket-heading h3,
+.public-final-bracket-heading .eyebrow {
+  margin: 0;
+}
+
+.public-final-bracket-heading h3 {
+  color: var(--public-ink);
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+
+.public-final-bracket-heading > span {
+  color: var(--public-muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.public-final-bracket .visual-bracket-panel {
+  border: 0;
+  border-radius: 0;
+  padding: 10px 0 12px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.public-final-bracket .visual-bracket-title-row {
+  display: none;
+}
+
+.public-final-bracket .visual-bracket-scroller {
+  padding: 0 12px 4px;
+}
+
+.public-final-bracket .visual-bracket-board {
+  --node-width: 276px;
+  --round-gap: 88px;
+  --row-height: 36px;
+  --line-color: #6d0fce;
+  grid-template-rows: 34px repeat(18, var(--row-height));
+  min-width: calc((var(--node-width) * 3) + (var(--round-gap) * 2) + 40px);
+  padding: 0 20px 10px;
+}
+
+.public-final-bracket .visual-round-label {
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  min-height: 30px;
+  color: var(--public-ink);
+  background: #f1f3f7;
+  font-size: 0.86rem;
+  text-transform: none;
+}
+
+.public-final-bracket .visual-round-label.round-seven {
+  font-size: 0;
+}
+
+.public-final-bracket .visual-round-label.round-seven::before {
+  content: "Finals";
+  font-size: 0.86rem;
+}
+
+.public-final-bracket .visual-bracket-node {
+  gap: 0;
+  overflow: hidden;
+  border-color: var(--public-line);
+  padding: 0;
+  color: var(--public-ink);
+  background: #f8fafc;
+  box-shadow: 0 8px 20px rgba(53, 23, 99, 0.08);
+}
+
+.public-final-bracket .visual-bracket-node.complete {
+  border-color: var(--public-line);
+  background: #f8fafc;
+}
+
+.public-final-bracket .visual-bracket-node.pending {
+  border-style: solid;
+  background: #fbf9ff;
+}
+
+.public-final-bracket .visual-node-meta {
+  padding: 6px 9px 3px;
+  color: var(--public-muted);
+}
+
+.public-final-bracket .visual-node-meta strong {
+  color: var(--public-accent);
+}
+
+.public-final-bracket .visual-node-label,
+.public-final-bracket .visual-node-path {
+  display: none;
+}
+
+.public-final-bracket .visual-node-team {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 34px;
+  border-top: 1px solid var(--public-line);
+  color: var(--public-ink);
+}
+
+.public-final-bracket .visual-node-team span,
+.public-final-bracket .visual-node-team small {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 6px 9px;
+  color: var(--public-ink);
+  font-size: 0.92rem;
+  line-height: 1.1;
+}
+
+.public-final-bracket .visual-node-team span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.public-final-bracket .visual-node-team span.winner,
+.public-final-bracket .visual-node-team span.winner + small {
+  color: var(--public-accent);
+}
+
+.public-final-bracket .visual-node-team small {
+  min-width: 46px;
+  justify-content: center;
+  border-left: 1px solid var(--public-line);
+  font-weight: 900;
+}
+
+.public-final-bracket .visual-node-work {
+  padding: 4px 9px 7px;
+  border-top: 1px solid var(--public-line);
+  color: var(--public-muted);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+.public-final-bracket .bracket-connector.elbow,
+.public-final-bracket .bracket-connector.direct,
+.public-final-bracket .bracket-connector.lane-stub,
+.public-final-bracket .bracket-connector.placement {
+  border-color: var(--line-color);
+}
+
+.public-final-bracket .bracket-connector.placement {
+  --line-color: rgba(109, 15, 206, 0.46);
+}
+
+.public-final-bracket .bracket-connector.lower {
+  --line-color: rgba(32, 199, 201, 0.65);
+}
+
+@media (max-width: 760px) {
+  .public-final-bracket-heading {
+    align-items: start;
+    padding: 12px;
+  }
+
+  .public-final-bracket-heading > span {
+    max-width: 110px;
+    text-align: right;
+  }
+
+  .public-final-bracket .visual-bracket-scroller {
+    padding-inline: 8px;
+  }
+
+  .public-final-bracket .visual-bracket-board {
+    --node-width: 242px;
+    --round-gap: 68px;
+    --row-height: 35px;
+    padding-inline: 12px;
+  }
+}
