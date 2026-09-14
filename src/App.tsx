@@ -1134,11 +1134,11 @@ function PublicResultsView({
         </div>
         {matches.length ? (
           <div className="public-rounds">
-            {hasPublicFinalBracket && <PublicFinalBracketPanel matches={matches} teamsById={teamsById} />}
-            {postedRounds.map((round) => (
+           {postedRounds.map((round) => (
               <PublicActualRound key={round.round} round={round.round} matches={round.matches} teamsById={teamsById} />
             ))}
             {previewRounds.length > 0 && <PublicFlowPreviewSection rounds={previewRounds} />}
+            {hasPublicFinalBracket && <PublicFinalBracketPanel matches={matches} teamsById={teamsById} />}
           </div>
         ) : (
           <EmptyState title="Schedule Not Posted Yet" detail="Tournament staff will post court assignments after pools are generated." />

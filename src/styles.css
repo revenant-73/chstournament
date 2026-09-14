@@ -2495,3 +2495,57 @@ select {
     padding-inline: 12px;
   }
 }
+
+/* Public bracket alignment fixes: keep connector coordinates and board geometry in sync. */
+.public-final-bracket .visual-bracket-board {
+  --node-width: 244px;
+  --round-gap: 72px;
+  --row-height: 38px;
+  grid-template-rows: 34px repeat(18, var(--row-height));
+  min-width: calc((var(--node-width) * 3) + (var(--round-gap) * 2) + 56px);
+  padding: 0 28px 10px;
+}
+
+.public-final-bracket .visual-bracket-node {
+  height: 152px;
+}
+
+.public-final-bracket .visual-node-meta {
+  min-height: 28px;
+  padding: 5px 8px 3px;
+}
+
+.public-final-bracket .visual-node-team {
+  min-height: 28px;
+}
+
+.public-final-bracket .visual-node-team span,
+.public-final-bracket .visual-node-team small {
+  padding: 4px 8px;
+  font-size: 0.84rem;
+}
+
+.public-final-bracket .visual-node-work {
+  min-height: 28px;
+  padding: 5px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.public-final-bracket .bracket-connector {
+  overflow: hidden;
+}
+
+.public-final-bracket .bracket-connector.placement {
+  --line-color: rgba(109, 15, 206, 0.38);
+}
+
+@media (max-width: 760px) {
+  .public-final-bracket .visual-bracket-board {
+    --node-width: 244px;
+    --round-gap: 72px;
+    --row-height: 38px;
+    min-width: calc((var(--node-width) * 3) + (var(--round-gap) * 2) + 56px);
+    padding-inline: 28px;
+  }
+}
