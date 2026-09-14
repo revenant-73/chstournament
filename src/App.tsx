@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import QRCode from "qrcode";
-import { fetchRemoteTournamentState, saveRemoteTournamentState, verifyAdminPin } from "./apiClient";
+import { fetchRemoteTournamentState, loginAdmin, saveRemoteTournamentState, verifyAdminSession } from "./apiClient";
 import { getCurrentRoute } from "./routes";
 import { clearTournamentState, loadTournamentState, saveTournamentState } from "./storage";
 import { createTournamentBackupJson, parseTournamentBackupJson } from "./tournament/backup";
@@ -24,7 +24,8 @@ import { calculatePoolStandings } from "./tournament/standings";
 import type { Match, PoolId, SetScore, Team, TeamStanding, TournamentState } from "./tournament/types";
 
 const pools: PoolId[] = ["A", "B", "C"];
-const adminPinKey = "century-varsity-admin-pin";
+const adminSessionKey = "century-varsity-admin-session";
+const adminEmailKey = "century-varsity-admin-email";
 const publicResultsUrl = "https://chstournament.vercel.app/results";
 const publicFlowPreviewRounds = [
   {
@@ -88,9 +89,11 @@ export default function App() {
   const [activeView, setActiveView] = useState<"dashboard" | "setup" | "scores" | "pools" | "bracket">(() =>
     isReadOnly ? "scores" : "dashboard"
   );
-  const [adminPin, setAdminPin] = useState(() => sessionStorage.getItem(adminPinKey) ?? "");
-  const [adminPinVerified, setAdminPinVerified] = useState(false);
-  const [adminPinStatus, setAdminPinStatus] = useState("");
+  const [adminEmail, setAdminEmail] = useState(() => sessionStorage.getItem(adminEmailKey) ?? "");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminSessionToken, setAdminSessionToken] = useState(() => sessionStorage.getItem(adminSessionKey) ?? "");
+  const [adminAuthenticated, setAdminAuthenticated] = useState(false);
+  const [adminAuthStatus, setAdminAuthStatus] = useState("");
   const [syncStatus, setSyncStatus] = useState("Local draft");
   const [backupStatus, setBackupStatus] = useState("");
   const [lastRemoteUpdate, setLastRemoteUpdate] = useState<string | null>(null);
@@ -141,7 +144,7 @@ export default function App() {
   useEffect(() => {
     saveTournamentState(state);
 
-    if (isReadOnly || !hasLoadedRemote.current || !adminPinVerified) {
+    if (isReadOnly || !hasLoadedRemote.current || !adminAuthenticated || !adminSessionToken) {
       return;
     }
 
@@ -157,7 +160,7 @@ export default function App() {
     saveTimer.current = window.setTimeout(async () => {
       try {
         setSyncStatus("Saving to Turso...");
-        const updatedAt = await saveRemoteTournamentState(state, adminPin.trim());
+        const updatedAt = await saveRemoteTournamentState(state, adminSessionToken);
         lastSyncedStateJson.current = stateJson;
         setLastRemoteUpdate(updatedAt);
         setSyncStatus("Saved to Turso");
@@ -171,7 +174,7 @@ export default function App() {
         window.clearTimeout(saveTimer.current);
       }
     };
-  }, [adminPin, adminPinVerified, isReadOnly, state]);
+  }, [adminAuthenticated, adminSessionToken, isReadOnly, state]);
 
   const teamsById = useMemo(() => new Map(state.teams.map((team) => [team.id, team])), [state.teams]);
   const courtStatuses = useMemo(() => getCourtStatuses(state.matches), [state.matches]);
@@ -250,7 +253,7 @@ export default function App() {
 
   function resetTournament() {
     const shouldReset = window.confirm(
-      "Reset tournament data? This clears pools, schedules, scores, standings, and posted results. If the admin PIN is verified, the clean state will sync to hosted results."
+      "Reset tournament data? This clears pools, schedules, scores, standings, and posted results. If you are signed in, the clean state will sync to hosted results."
     );
 
     if (!shouldReset) {
@@ -261,7 +264,7 @@ export default function App() {
     lastSyncedStateJson.current = null;
     setState(createInitialState());
     setBackupStatus("");
-    setSyncStatus(adminPinVerified ? "Reset queued for hosted sync" : "Reset locally; verify admin PIN to clear hosted results");
+    setSyncStatus(adminAuthenticated ? "Reset queued for hosted sync" : "Reset locally; sign in to clear hosted results");
     setLastRemoteUpdate(null);
     setActiveView("setup");
   }
@@ -378,34 +381,72 @@ export default function App() {
     setActiveView("scores");
   }
 
-  function rememberAdminPin(value: string) {
-    setAdminPin(value);
-    setAdminPinVerified(false);
-    setAdminPinStatus("");
-    if (!value.trim()) {
-      sessionStorage.removeItem(adminPinKey);
+  useEffect(() => {
+    if (isReadOnly || !adminSessionToken || adminAuthenticated) {
+      return;
     }
+
+    let cancelled = false;
+    async function restoreAdminSession() {
+      try {
+        setAdminAuthStatus("Restoring admin session...");
+        const session = await verifyAdminSession(adminSessionToken);
+        if (cancelled) {
+          return;
+        }
+        setAdminEmail(session.email);
+        sessionStorage.setItem(adminEmailKey, session.email);
+        setAdminAuthenticated(true);
+        setAdminAuthStatus("Admin signed in");
+      } catch {
+        if (cancelled) {
+          return;
+        }
+        sessionStorage.removeItem(adminSessionKey);
+        setAdminSessionToken("");
+        setAdminAuthenticated(false);
+        setAdminAuthStatus("Admin session expired. Please sign in again.");
+      }
+    }
+
+    void restoreAdminSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [adminAuthenticated, adminSessionToken, isReadOnly]);
+
+  function signOutAdmin() {
+    sessionStorage.removeItem(adminSessionKey);
+    setAdminPassword("");
+    setAdminSessionToken("");
+    setAdminAuthenticated(false);
+    setAdminAuthStatus("Signed out");
   }
 
   async function unlockAdmin(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
-    const trimmedPin = adminPin.trim();
-    if (!trimmedPin) {
-      setAdminPinStatus("Enter the admin PIN to continue.");
+    const email = adminEmail.trim();
+    if (!email || !adminPassword) {
+      setAdminAuthStatus("Enter the admin email and password to continue.");
       return;
     }
 
     try {
-      setAdminPinStatus("Checking PIN...");
-      await verifyAdminPin(trimmedPin);
-      sessionStorage.setItem(adminPinKey, trimmedPin);
-      setAdminPinVerified(true);
-      setAdminPinStatus("Admin unlocked");
+      setAdminAuthStatus("Signing in...");
+      const session = await loginAdmin(email, adminPassword);
+      sessionStorage.setItem(adminSessionKey, session.token);
+      sessionStorage.setItem(adminEmailKey, session.email);
+      setAdminSessionToken(session.token);
+      setAdminEmail(session.email);
+      setAdminPassword("");
+      setAdminAuthenticated(true);
+      setAdminAuthStatus("Admin signed in");
       setSyncStatus(hasLoadedRemote.current ? "Synced with Turso" : syncStatus);
     } catch {
-      sessionStorage.removeItem(adminPinKey);
-      setAdminPinVerified(false);
-      setAdminPinStatus("PIN did not unlock admin access.");
+      sessionStorage.removeItem(adminSessionKey);
+      setAdminSessionToken("");
+      setAdminAuthenticated(false);
+      setAdminAuthStatus("Email or password did not unlock admin access.");
     }
   }
 
@@ -424,13 +465,13 @@ export default function App() {
     return <QrCodePage />;
   }
 
-  if (!adminPinVerified) {
+  if (!adminAuthenticated) {
     return (
       <main className="app-shell admin-lock-shell">
         <header className="masthead admin-lock-header">
           <div>
             <p className="eyebrow">Century Volleyball</p>
-            <h1>Admin Locked</h1>
+            <h1>Admin Sign In</h1>
           </div>
           <div className="status-stack">
             <div className="stage-pill">{state.stage.replace("_", " ")}</div>
@@ -441,17 +482,34 @@ export default function App() {
 
         <form className="admin-lock-panel" onSubmit={(event) => void unlockAdmin(event)}>
           <label>
-            Admin PIN
+            Admin Email
             <input
-              type="password"
-              value={adminPin}
-              placeholder="Required for scorekeeping"
+              type="email"
+              value={adminEmail}
+              placeholder="scorekeeper@example.com"
+              autoComplete="username"
               autoFocus
-              onChange={(event) => rememberAdminPin(event.target.value)}
+              onChange={(event) => {
+                setAdminEmail(event.target.value);
+                setAdminAuthStatus("");
+              }}
             />
           </label>
-          <button type="submit">Unlock Admin</button>
-          {adminPinStatus && <p>{adminPinStatus}</p>}
+          <label>
+            Password
+            <input
+              type="password"
+              value={adminPassword}
+              placeholder="Required for scorekeeping"
+              autoComplete="current-password"
+              onChange={(event) => {
+                setAdminPassword(event.target.value);
+                setAdminAuthStatus("");
+              }}
+            />
+          </label>
+          <button type="submit">Sign In</button>
+          {adminAuthStatus && <p>{adminAuthStatus}</p>}
           <a href="/results">Open public results</a>
         </form>
       </main>
@@ -475,15 +533,11 @@ export default function App() {
       <AdminEventReadyBanner items={eventReadyItems} />
 
       <section className="admin-bar">
-        <label>
-          Admin PIN
-          <input
-            type="password"
-            value={adminPin}
-            placeholder="Required for hosted saves"
-            onChange={(event) => rememberAdminPin(event.target.value)}
-          />
-        </label>
+        <div>
+          <span>Signed in as</span>
+          <strong>{adminEmail}</strong>
+        </div>
+        <button className="secondary" onClick={signOutAdmin}>Sign Out</button>
         <a href="/results">Open public results</a>
       </section>
 

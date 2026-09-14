@@ -14,7 +14,7 @@ Event-day scoring and public results app for the Century varsity volleyball tour
 Before the tournament starts:
 
 1. Open the admin URL on the scorekeeper device.
-2. Enter the admin PIN.
+2. Sign in with the admin email and password.
 3. Confirm the app says it is synced with Turso.
 4. Open the public results URL on a phone.
 5. Confirm the public page shows the correct pool-play schedule.
@@ -38,7 +38,7 @@ After the tournament:
 
 - The public page is read-only and has no score-edit controls.
 - The public page shows posted matches plus preview cards for future Rounds 4-7 until teams are assigned.
-- The admin page stays locked until the admin PIN is verified.
+- The admin page stays locked until an admin email/password session is verified.
 - Work team means the team helping officiate, not a team currently playing.
 - For bracket matches, the work team is normally the team that lost on that same court in the previous match.
 - If a match needs manual correction, use the director override controls in the admin bracket flow.
@@ -63,3 +63,4 @@ npm audit
 ## Deployment
 
 Vercel hosts the app and Turso stores the live tournament snapshot. See [DEPLOYMENT.md](DEPLOYMENT.md) for environment variables and storage details.
+
