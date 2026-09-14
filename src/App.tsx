@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import QRCode from "qrcode";
+import centuryLogoUrl from "./assets/official-century-logo.png";
 import { fetchRemoteTournamentState, loginAdmin, saveRemoteTournamentState, verifyAdminSession } from "./apiClient";
 import { getCurrentRoute } from "./routes";
 import { clearTournamentState, loadTournamentState, saveTournamentState } from "./storage";
@@ -1171,9 +1172,12 @@ function PublicResultsView({
   return (
     <main className="app-shell public-shell">
       <header className="public-header">
-        <div>
-          <p className="eyebrow">Century Volleyball</p>
-          <h1>Schedule</h1>
+        <div className="public-branding">
+          <img src={centuryLogoUrl} alt="Century High School" />
+          <div>
+            <p className="eyebrow">Live Schedule</p>
+            <h1>Century High School 2026 Volleyball Invitational</h1>
+          </div>
         </div>
         <div className="public-status">
           <strong>{state.stage.replace("_", " ")}</strong>

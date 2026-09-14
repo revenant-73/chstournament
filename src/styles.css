@@ -167,6 +167,22 @@ button:disabled {
   backdrop-filter: blur(12px);
 }
 
+.public-branding {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.public-branding img {
+  width: 78px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #08999a;
+}
+
 .masthead h1,
 .panel h2,
 .pool-panel h2,
@@ -181,9 +197,10 @@ button:disabled {
 }
 
 .public-header h1 {
+  max-width: 760px;
   margin: 0;
-  font-size: clamp(1.55rem, 8vw, 2.8rem);
-  line-height: 0.95;
+  font-size: clamp(1.45rem, 5vw, 2.65rem);
+  line-height: 0.98;
 }
 
 .eyebrow {
@@ -1913,28 +1930,40 @@ select {
   color: var(--public-accent);
 }
 
-.public-header {
-  margin: -2px -2px 12px;
-  border: 1px solid rgba(221, 208, 251, 0.9);
-  border-radius: 8px;
-  padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 8px 24px rgba(53, 23, 99, 0.08);
+.public-branding .eyebrow {
+  color: #d7dde0;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
 }
 
-.public-header h1,
-.public-status strong,
+.public-header {
+  margin: -2px -2px 12px;
+  border: 1px solid rgba(196, 205, 209, 0.72);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #061011 0%, #0a2224 52%, #087f82 100%);
+  box-shadow: 0 12px 28px rgba(6, 16, 17, 0.2);
+}
+
 .public-section .section-title-row h2,
 .public-now-next .section-title-row h2 {
   color: var(--public-ink);
 }
 
-.public-header h1 {
-  font-size: clamp(1.6rem, 5vw, 2.35rem);
-  line-height: 1;
+.public-header h1,
+.public-status strong {
+  color: #ffffff;
 }
 
-.public-status,
+.public-header h1 {
+  color: #ffffff;
+  font-size: clamp(1.55rem, 4.6vw, 2.55rem);
+  font-weight: 950;
+  line-height: 0.95;
+  text-transform: uppercase;
+  text-shadow: 0 2px 0 rgba(6, 16, 17, 0.7);
+}
+
 .section-title-row span,
 .public-court-status-head span,
 .public-court-status-line span,
@@ -1943,8 +1972,21 @@ select {
   color: var(--public-muted);
 }
 
+.public-status {
+  border-left: 1px solid rgba(215, 221, 224, 0.36);
+  padding-left: 14px;
+  color: #d7dde0;
+}
+
 .public-status strong {
-  text-transform: capitalize;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.public-branding img {
+  border: 2px solid rgba(255, 255, 255, 0.82);
+  background: #07999b;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
 }
 
 .parent-note {
@@ -2241,6 +2283,21 @@ select {
   .public-header {
     margin: 0 0 10px;
     padding: 10px 12px;
+  }
+
+  .public-status {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .public-branding {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 9px;
+  }
+
+  .public-branding img {
+    width: 58px;
+    height: 44px;
   }
 
   .parent-note {
