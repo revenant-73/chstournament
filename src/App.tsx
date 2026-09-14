@@ -1082,7 +1082,7 @@ function PublicResultsView({
 
       <section className="parent-note">
         <strong>Find your court, then the time.</strong>
-        <span>Work team means that team is helping officiate, not playing.</span>
+        <span>Scores marked Final are complete. Work teams are helping officiate.</span>
         <small>Updates automatically about every 15 seconds.</small>
       </section>
 
@@ -1090,9 +1090,9 @@ function PublicResultsView({
 
       {finalPlacements.length === 9 && <FinalStandingsPanel placements={finalPlacements} />}
 
-      <section className="public-section">
+      <section className="public-section" aria-label="Posted tournament schedule and results">
         <div className="section-title-row">
-          <h2>Schedule & Results</h2>
+          <h2>Posted Schedule</h2>
           <span>{matches.length ? `${matches.length} posted${previewMatchCount ? ` + ${previewMatchCount} preview` : ""}` : "Schedule pending"}</span>
         </div>
         {matches.length ? (
@@ -1109,7 +1109,10 @@ function PublicResultsView({
 
       {hasPools && (
         <details className="public-standings">
-          <summary>Pool standings</summary>
+          <summary>
+            <span>Pool standings</span>
+            <small>Optional detail</small>
+          </summary>
           <PoolsView teams={state.teams} matches={state.matches} />
         </details>
       )}
@@ -1168,9 +1171,9 @@ function PublicFlowPreviewSection({ rounds }: { rounds: PublicPreviewRoundData[]
   const previewMatchCount = rounds.reduce((total, round) => total + round.matches.length, 0);
 
   return (
-    <details className="public-flow-preview" open>
+    <details className="public-flow-preview">
       <summary>
-        <span>Tournament flow after pool play</span>
+        <span>Future flow preview</span>
         <small>{previewMatchCount} preview matches</small>
       </summary>
       <div className="public-rounds public-flow-rounds">
@@ -1244,7 +1247,7 @@ function PublicCourtStatusLine({
 
 function PublicActualRound({ round, matches, teamsById }: { round: number; matches: Match[]; teamsById: Map<string, Team> }) {
   return (
-    <article className="round-strip" key={round}>
+    <article className="round-strip posted-round" key={round}>
       <div className="round-heading">
         <strong>Round {round}</strong>
         <span>{matches[0]?.scheduledTime}</span>
@@ -1272,7 +1275,7 @@ function PublicPreviewRound({ round }: { round: PublicPreviewRoundData }) {
             <div className="public-teams">
               <span>{match.label}</span>
             </div>
-            <div className="public-match-footer">
+            <div className="public-match-footer public-match-state">
               <span>{round.title}</span>
               <span>Teams TBD</span>
             </div>
@@ -1300,7 +1303,7 @@ function PublicMatchCard({ match, teamsById }: { match: Match; teamsById: Map<st
         <span className="versus">vs</span>
         <span className={result?.winnerId === match.teamBId ? "winner" : ""}>{teamB?.name ?? "TBD"}</span>
       </div>
-      <div className="public-match-footer">
+      <div className="public-match-footer public-match-state">
         {result ? (
           <>
             <span className="final-badge">Final</span>

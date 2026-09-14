@@ -374,7 +374,7 @@ button:disabled {
 
 .round-strip {
   display: grid;
-  grid-template-columns: 82px 1fr;
+  grid-template-columns: 78px 1fr;
   gap: 8px;
   align-items: stretch;
   border: 1px solid rgba(207, 213, 216, 0.16);
@@ -1745,5 +1745,133 @@ select {
 
   .qr-actions {
     display: none;
+  }
+}
+
+.public-section {
+  margin-top: 12px;
+}
+
+.public-match-state {
+  min-width: 0;
+}
+
+.public-standings summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.public-standings summary small {
+  color: #b8c1c6;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+
+.public-shell {
+  overflow-x: clip;
+}
+
+.public-court-status {
+  border-color: rgba(32, 199, 201, 0.3);
+  padding: 12px;
+  background: #101619;
+}
+
+.public-court-status-line strong {
+  font-size: 1.02rem;
+  line-height: 1.16;
+}
+
+.round-strip .public-match {
+  border-color: rgba(207, 213, 216, 0.1);
+  padding: 10px;
+}
+
+.public-teams {
+  font-size: 1.04rem;
+  line-height: 1.12;
+}
+
+@media (max-width: 760px) {
+  .public-shell {
+    width: min(100% - 12px, 980px);
+  }
+
+  .round-strip {
+    grid-template-columns: 1fr;
+    gap: 7px;
+    padding: 7px;
+  }
+
+  .round-heading {
+    grid-template-columns: auto 1fr;
+    align-items: baseline;
+    border-right: 0;
+    border-bottom: 1px solid rgba(207, 213, 216, 0.1);
+    padding-right: 0;
+    padding-bottom: 7px;
+  }
+
+  .round-heading span {
+    justify-self: end;
+  }
+
+  .public-court-status-grid,
+  .court-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .public-court-status {
+    padding: 11px;
+  }
+
+  .public-match {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .public-court {
+    width: fit-content;
+    grid-row: auto;
+    align-self: auto;
+    border-radius: 6px;
+    padding: 3px 7px;
+    color: #061011;
+    background: #20c7c9;
+    font-size: 0.72rem;
+  }
+
+  .public-teams {
+    display: grid;
+    gap: 4px;
+    font-size: 1.05rem;
+    line-height: 1.12;
+  }
+
+  .public-teams .versus {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+  }
+
+  .public-worker {
+    grid-column: auto;
+    padding-top: 7px;
+    border-top: 1px solid rgba(207, 213, 216, 0.1);
+  }
+
+  .public-match-footer {
+    grid-column: auto;
+    grid-row: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 6px;
+    padding: 7px 8px;
+    background: rgba(244, 247, 248, 0.05);
+    text-align: left;
   }
 }
