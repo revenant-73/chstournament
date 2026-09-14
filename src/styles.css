@@ -2416,7 +2416,7 @@ select {
 .public-final-bracket .visual-node-team {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 34px;
+  min-height: 31px;
   border-top: 1px solid var(--public-line);
   color: var(--public-ink);
 }
@@ -2444,14 +2444,14 @@ select {
 }
 
 .public-final-bracket .visual-node-team small {
-  min-width: 46px;
+  min-width: 40px;
   justify-content: center;
   border-left: 1px solid var(--public-line);
   font-weight: 900;
 }
 
 .public-final-bracket .visual-node-work {
-  padding: 4px 9px 7px;
+  padding: 4px 8px 6px;
   border-top: 1px solid var(--public-line);
   color: var(--public-muted);
   font-size: 0.7rem;

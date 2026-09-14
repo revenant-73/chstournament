@@ -759,6 +759,8 @@ function VisualBracketPanel({
             teamsById={teamsById}
             fallbackLabel="#3 vs #6"
             pathLabel="Championship feeder"
+            fallbackCourt={1}
+            fallbackWork="Century JV"
           />
           <VisualBracketNode
             className="slot-r5-c2"
@@ -766,6 +768,8 @@ function VisualBracketPanel({
             teamsById={teamsById}
             fallbackLabel="#4 vs #5"
             pathLabel="Championship feeder"
+            fallbackCourt={2}
+            fallbackWork="Century JV"
           />
           <VisualBracketNode
             className="slot-r5-c3"
@@ -773,6 +777,8 @@ function VisualBracketPanel({
             teamsById={teamsById}
             fallbackLabel="#8 vs #9"
             pathLabel="Lower bracket"
+            fallbackCourt={3}
+            fallbackWork="#7"
           />
 
           <VisualBracketNode
@@ -781,6 +787,8 @@ function VisualBracketPanel({
             teamsById={teamsById}
             fallbackLabel="#1 vs Winner #4/#5"
             pathLabel="Semifinal"
+            fallbackCourt={1}
+            fallbackWork="Century JV"
           />
           <VisualBracketNode
             className="slot-r6-c2 championship-path"
@@ -788,6 +796,8 @@ function VisualBracketPanel({
             teamsById={teamsById}
             fallbackLabel="#2 vs Winner #3/#6"
             pathLabel="Semifinal"
+            fallbackCourt={2}
+            fallbackWork="Century JV"
           />
           <VisualBracketNode
             className="slot-r6-c3 placement-path"
@@ -795,6 +805,8 @@ function VisualBracketPanel({
             teamsById={teamsById}
             fallbackLabel="#7 vs Winner #8/#9"
             pathLabel="7th-place feeder"
+            fallbackCourt={3}
+            fallbackWork="Loser of Court 3"
           />
 
           <VisualBracketNode
@@ -803,6 +815,8 @@ function VisualBracketPanel({
             teamsById={teamsById}
             fallbackLabel="Championship"
             pathLabel="Title match"
+            fallbackCourt={1}
+            fallbackWork="Century JV"
           />
           <VisualBracketNode
             className="slot-r7-c2 placement-destination"
@@ -810,6 +824,8 @@ function VisualBracketPanel({
             teamsById={teamsById}
             fallbackLabel="3rd Place"
             pathLabel="Placement match"
+            fallbackCourt={2}
+            fallbackWork="Century JV"
           />
           <VisualBracketNode
             className="slot-r7-c3 placement-destination"
@@ -817,6 +833,8 @@ function VisualBracketPanel({
             teamsById={teamsById}
             fallbackLabel="5th Place"
             pathLabel="Placement match"
+            fallbackCourt={3}
+            fallbackWork="Loser of 1:00 match"
           />
 
           <div className="bracket-connector c-r5-1-to-r6-2 elbow down" aria-hidden="true" />
@@ -840,18 +858,25 @@ function VisualBracketNode({
   teamsById,
   fallbackLabel,
   pathLabel,
+  fallbackCourt,
+  fallbackWork,
   className
 }: {
   match?: Match;
   teamsById: Map<string, Team>;
   fallbackLabel: string;
   pathLabel: string;
+  fallbackCourt: number;
+  fallbackWork: string;
   className: string;
 }) {
   const result = match ? getMatchResult(match) : null;
   const teamA = match ? teamsById.get(match.teamAId) : undefined;
   const teamB = match ? teamsById.get(match.teamBId) : undefined;
-  const worker = match ? getWorkTeamName(match, teamsById) : "TBD";
+  const worker = match ? getWorkTeamName(match, teamsById) : fallbackWork;
+  const [fallbackTeamA, fallbackTeamB] = getBracketFallbackTeams(fallbackLabel);
+  const teamALabel = match ? formatBracketTeamLabel(teamA?.name ?? "TBD", match.label, 0) : fallbackTeamA;
+  const teamBLabel = match ? formatBracketTeamLabel(teamB?.name ?? "TBD", match.label, 1) : fallbackTeamB;
   const isDestination = fallbackLabel === "Championship" || fallbackLabel === "3rd Place" || fallbackLabel === "5th Place";
   const nodeClassName = [
     "visual-bracket-node",
@@ -866,17 +891,17 @@ function VisualBracketNode({
   return (
     <article className={nodeClassName} role="listitem">
       <div className="visual-node-meta">
-        <strong>{match ? `Court ${match.court}` : "Pending"}</strong>
+        <strong>Court {match?.court ?? fallbackCourt}</strong>
         <span>{match?.scheduledTime ?? "TBD"}</span>
       </div>
       <div className="visual-node-label">{match?.label ?? fallbackLabel}</div>
       <div className="visual-node-path">{pathLabel}</div>
       <div className="visual-node-team">
-        <span className={result?.winnerId === match?.teamAId ? "winner" : ""}>{teamA?.name ?? "TBD"}</span>
+        <span className={result?.winnerId === match?.teamAId ? "winner" : ""}>{teamALabel}</span>
         <small>{match ? getBracketSetSummary(match, "teamA") : "-"}</small>
       </div>
       <div className="visual-node-team">
-        <span className={result?.winnerId === match?.teamBId ? "winner" : ""}>{teamB?.name ?? "TBD"}</span>
+        <span className={result?.winnerId === match?.teamBId ? "winner" : ""}>{teamBLabel}</span>
         <small>{match ? getBracketSetSummary(match, "teamB") : "-"}</small>
       </div>
       <div className="visual-node-work">Work: {worker}</div>
@@ -1760,6 +1785,21 @@ function getScoreText(match: Match): string {
   return playedSets.map((set) => `${set.teamA}-${set.teamB}`).join(", ");
 }
 
+function getBracketFallbackTeams(label: string): [string, string] {
+  const parts = label.split(/\s+vs\s+/i).map((part) => part.trim());
+  if (parts.length === 2) {
+    return [parts[0], parts[1]];
+  }
+  return [label, "Opponent TBD"];
+}
+
+function formatBracketTeamLabel(teamName: string, matchLabel: string, sideIndex: 0 | 1): string {
+  const [seedOrPath] = getBracketFallbackTeams(matchLabel).slice(sideIndex, sideIndex + 1);
+  if (!seedOrPath || seedOrPath === teamName || seedOrPath.toLowerCase().includes("winner")) {
+    return teamName;
+  }
+  return `${seedOrPath} ${teamName}`;
+}
 function getBracketSetSummary(match: Match, side: keyof SetScore): string {
   const scores = match.sets
     .map((set) => set[side])
