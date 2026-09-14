@@ -130,32 +130,22 @@ export function areRoundSixMatchesComplete(matches: Match[]): boolean {
 }
 
 export function generateRoundSevenMatches(teams: Team[], matches: Match[]): Match[] {
-  const roundFiveMatches = getRoundFiveMatches(matches);
   const roundSixMatches = getRoundSixMatches(matches);
-  if (roundFiveMatches.length !== 3 || roundSixMatches.length !== 3 || !areRoundSixMatchesComplete(matches)) {
+  if (roundSixMatches.length !== 3 || !areRoundSixMatchesComplete(matches)) {
     return [];
   }
 
   const teamsById = new Map(teams.map((team) => [team.id, team]));
-  const roundFiveCourtOneResult = getMatchResult(roundFiveMatches[0]);
-  const roundFiveCourtTwoResult = getMatchResult(roundFiveMatches[1]);
   const semifinalOneResult = getMatchResult(roundSixMatches[0]);
   const semifinalTwoResult = getMatchResult(roundSixMatches[1]);
-  if (!roundFiveCourtOneResult || !roundFiveCourtTwoResult || !semifinalOneResult || !semifinalTwoResult) {
+  if (!semifinalOneResult || !semifinalTwoResult) {
     return [];
   }
 
   const championshipTeamA = teamsById.get(semifinalOneResult.winnerId);
   const championshipTeamB = teamsById.get(semifinalTwoResult.winnerId);
-  const thirdPlaceTeamA = teamsById.get(semifinalOneResult.loserId);
-  const thirdPlaceTeamB = teamsById.get(semifinalTwoResult.loserId);
-  const fifthPlaceTeamA = teamsById.get(roundFiveCourtOneResult.loserId);
-  const fifthPlaceTeamB = teamsById.get(roundFiveCourtTwoResult.loserId);
-  const roundSevenTeamIds = new Set(
-    [championshipTeamA, championshipTeamB, thirdPlaceTeamA, thirdPlaceTeamB, fifthPlaceTeamA, fifthPlaceTeamB]
-      .filter((team): team is Team => Boolean(team))
-      .map((team) => team.id)
-  );
+  const thirdPlaceTeamA = teamsById.get(semifinalTwoResult.loserId);
+  const thirdPlaceTeamB = teamsById.get(semifinalOneResult.loserId);
 
   return [
     createScheduledMatch(
@@ -179,23 +169,13 @@ export function generateRoundSevenMatches(teams: Team[], matches: Match[]): Matc
       undefined,
       "2:00 PM",
       outsideWorkCrewName
-    ),
-    createScheduledMatch(
-      "final-round-7-court-3",
-      7,
-      3,
-      "5th Place",
-      fifthPlaceTeamA,
-      fifthPlaceTeamB,
-      getAvailableSameCourtWorker(roundSixMatches[2], teamsById, roundSevenTeamIds),
-      "2:00 PM"
     )
   ].filter((match): match is Match => Boolean(match));
 }
 
 export function areRoundSevenMatchesComplete(matches: Match[]): boolean {
   const roundSevenMatches = getRoundSevenMatches(matches);
-  return roundSevenMatches.length === 3 && roundSevenMatches.every((match) => getMatchResult(match));
+  return roundSevenMatches.length === 2 && roundSevenMatches.every((match) => getMatchResult(match));
 }
 
 export function getFinalPlacements(teams: Team[], matches: Match[]): FinalPlacement[] {
@@ -205,19 +185,27 @@ export function getFinalPlacements(teams: Team[], matches: Match[]): FinalPlacem
   if (
     roundFiveMatches.length !== 3 ||
     roundSixMatches.length !== 3 ||
-    roundSevenMatches.length !== 3 ||
+    roundSevenMatches.length !== 2 ||
     !areRoundSevenMatchesComplete(matches)
   ) {
     return [];
   }
 
   const teamsById = new Map(teams.map((team) => [team.id, team]));
+  const roundFiveCourtOneResult = getMatchResult(roundFiveMatches[0]);
+  const roundFiveCourtTwoResult = getMatchResult(roundFiveMatches[1]);
   const roundFiveCourtThreeResult = getMatchResult(roundFiveMatches[2]);
   const roundSixCourtThreeResult = getMatchResult(roundSixMatches[2]);
   const championshipResult = getMatchResult(roundSevenMatches[0]);
   const thirdPlaceResult = getMatchResult(roundSevenMatches[1]);
-  const fifthPlaceResult = getMatchResult(roundSevenMatches[2]);
-  if (!roundFiveCourtThreeResult || !roundSixCourtThreeResult || !championshipResult || !thirdPlaceResult || !fifthPlaceResult) {
+  if (
+    !roundFiveCourtOneResult ||
+    !roundFiveCourtTwoResult ||
+    !roundFiveCourtThreeResult ||
+    !roundSixCourtThreeResult ||
+    !championshipResult ||
+    !thirdPlaceResult
+  ) {
     return [];
   }
 
@@ -226,10 +214,10 @@ export function getFinalPlacements(teams: Team[], matches: Match[]): FinalPlacem
     createFinalPlacement(2, teamsById.get(championshipResult.loserId), "Championship runner-up"),
     createFinalPlacement(3, teamsById.get(thirdPlaceResult.winnerId), "3rd-place winner"),
     createFinalPlacement(4, teamsById.get(thirdPlaceResult.loserId), "3rd-place runner-up"),
-    createFinalPlacement(5, teamsById.get(fifthPlaceResult.winnerId), "5th-place winner"),
-    createFinalPlacement(6, teamsById.get(fifthPlaceResult.loserId), "5th-place runner-up"),
-    createFinalPlacement(7, teamsById.get(roundSixCourtThreeResult.winnerId), "Lower-bracket final winner"),
-    createFinalPlacement(8, teamsById.get(roundSixCourtThreeResult.loserId), "Lower-bracket final runner-up"),
+    createFinalPlacement(5, teamsById.get(roundSixCourtThreeResult.winnerId), "Round 6 Court 3 winner"),
+    createFinalPlacement(6, teamsById.get(roundSixCourtThreeResult.loserId), "Round 6 Court 3 runner-up"),
+    createFinalPlacement(7, teamsById.get(roundFiveCourtTwoResult.loserId), "#4/#5 match loser"),
+    createFinalPlacement(8, teamsById.get(roundFiveCourtOneResult.loserId), "#3/#6 match loser"),
     createFinalPlacement(9, teamsById.get(roundFiveCourtThreeResult.loserId), "#8/#9 match loser")
   ].filter((placement): placement is FinalPlacement => Boolean(placement));
 }
@@ -338,15 +326,6 @@ function getRoundSevenMatches(matches: Match[]): Match[] {
   return matches.filter((match) => match.round === 7).sort((a, b) => a.court - b.court);
 }
 
-function getAvailableSameCourtWorker(match: Match, teamsById: Map<string, Team>, unavailableTeamIds: Set<string>): Team | undefined {
-  const result = getMatchResult(match);
-  if (!result || unavailableTeamIds.has(result.loserId)) {
-    return undefined;
-  }
-
-  return teamsById.get(result.loserId);
-}
-
 function createFinalPlacement(place: number, team: Team | undefined, source: string): FinalPlacement | null {
   if (!team) {
     return null;
@@ -354,4 +333,5 @@ function createFinalPlacement(place: number, team: Team | undefined, source: str
 
   return { place, team, source };
 }
+
 

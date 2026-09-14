@@ -209,18 +209,17 @@ describe("final bracket reseeding", () => {
     expect(matchSeeds(roundSixMatches[2], teams)).toEqual({ teamA: 7, teamB: 8, workTeam: 9, workTeamName: undefined });
   });
 
-  it("generates the 2:00 PM Round 7 placement matches from Round 6 results", () => {
+  it("generates only the 2:00 PM championship and 3rd-place matches from Round 6 results", () => {
     const teams = generateInitialPools(createDefaultTeams());
     const matches = completedMatchesThroughRoundSix(teams);
     const roundSevenMatches = generateRoundSevenMatches(teams, matches);
 
     expect(areRoundSixMatchesComplete(matches)).toBe(true);
-    expect(roundSevenMatches).toHaveLength(3);
-    expect(roundSevenMatches.map((match) => match.scheduledTime)).toEqual(["2:00 PM", "2:00 PM", "2:00 PM"]);
-    expect(roundSevenMatches.map((match) => match.label)).toEqual(["Championship", "3rd Place", "5th Place"]);
+    expect(roundSevenMatches).toHaveLength(2);
+    expect(roundSevenMatches.map((match) => match.scheduledTime)).toEqual(["2:00 PM", "2:00 PM"]);
+    expect(roundSevenMatches.map((match) => match.label)).toEqual(["Championship", "3rd Place"]);
     expect(matchSeeds(roundSevenMatches[0], teams)).toEqual({ teamA: 1, teamB: 2, workTeam: undefined, workTeamName: "Century JV" });
-    expect(matchSeeds(roundSevenMatches[1], teams)).toEqual({ teamA: 4, teamB: 3, workTeam: undefined, workTeamName: "Century JV" });
-    expect(matchSeeds(roundSevenMatches[2], teams)).toEqual({ teamA: 6, teamB: 5, workTeam: 8, workTeamName: undefined });
+    expect(matchSeeds(roundSevenMatches[1], teams)).toEqual({ teamA: 3, teamB: 4, workTeam: undefined, workTeamName: "Century JV" });
   });
 
   it("calculates final 1st through 9th placements after Round 7 scores", () => {
@@ -230,16 +229,16 @@ describe("final bracket reseeding", () => {
 
     expect(areRoundSevenMatchesComplete(matches)).toBe(true);
     expect(placements).toHaveLength(9);
-    expect(placements.map((placement) => placement.team.originalSeed)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(placements.map((placement) => placement.team.originalSeed)).toEqual([1, 2, 3, 4, 7, 8, 5, 6, 9]);
     expect(placements.map((placement) => placement.source)).toEqual([
       "Championship winner",
       "Championship runner-up",
       "3rd-place winner",
       "3rd-place runner-up",
-      "5th-place winner",
-      "5th-place runner-up",
-      "Lower-bracket final winner",
-      "Lower-bracket final runner-up",
+      "Round 6 Court 3 winner",
+      "Round 6 Court 3 runner-up",
+      "#4/#5 match loser",
+      "#3/#6 match loser",
       "#8/#9 match loser"
     ]);
   });
@@ -303,8 +302,8 @@ describe("full tournament simulation", () => {
     expect(seededTeams.map((seededTeam) => seededTeam.seed)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     expect(roundFiveMatches).toHaveLength(3);
     expect(roundSixMatches).toHaveLength(3);
-    expect(roundSevenMatches).toHaveLength(3);
-    expect(allMatches).toHaveLength(21);
+    expect(roundSevenMatches).toHaveLength(2);
+    expect(allMatches).toHaveLength(20);
     expect(allMatches.every((match) => getMatchResult(match))).toBe(true);
     expect(getFinalPlacements(teams, allMatches).map((placement) => placement.place)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
@@ -386,4 +385,5 @@ function completeLowerSeedWin(match: Match, teams: Team[]): Match {
           [18, 25]
         ]);
 }
+
 

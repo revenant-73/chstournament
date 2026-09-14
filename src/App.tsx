@@ -249,9 +249,20 @@ export default function App() {
   }
 
   function resetTournament() {
+    const shouldReset = window.confirm(
+      "Reset tournament data? This clears pools, schedules, scores, standings, and posted results. If the admin PIN is verified, the clean state will sync to hosted results."
+    );
+
+    if (!shouldReset) {
+      return;
+    }
+
     clearTournamentState();
+    lastSyncedStateJson.current = null;
     setState(createInitialState());
     setBackupStatus("");
+    setSyncStatus(adminPinVerified ? "Reset queued for hosted sync" : "Reset locally; verify admin PIN to clear hosted results");
+    setLastRemoteUpdate(null);
     setActiveView("setup");
   }
 
@@ -744,7 +755,7 @@ function VisualBracketPanel({
           <p className="eyebrow">Visual Bracket</p>
           <h2 id="visual-bracket-title">Championship and placement paths</h2>
         </div>
-        <span>{visualMatchCount}/9 matches posted</span>
+        <span>{visualMatchCount}/8 matches posted</span>
       </div>
 
       <div className="visual-bracket-scroller">
@@ -874,9 +885,11 @@ function VisualBracketNode({
   const teamA = match ? teamsById.get(match.teamAId) : undefined;
   const teamB = match ? teamsById.get(match.teamBId) : undefined;
   const worker = match ? getWorkTeamName(match, teamsById) : fallbackWork;
-  const [fallbackTeamA, fallbackTeamB] = getBracketFallbackTeams(fallbackLabel);
-  const teamALabel = match ? formatBracketTeamLabel(teamA?.name ?? "TBD", match.label, 0) : fallbackTeamA;
-  const teamBLabel = match ? formatBracketTeamLabel(teamB?.name ?? "TBD", match.label, 1) : fallbackTeamB;
+  const bracketLabel = match?.label ?? fallbackLabel;
+  const [fallbackTeamA, fallbackTeamB] = getBracketFallbackTeams(bracketLabel);
+  const teamALabel = match ? formatBracketTeamLabel(teamA, bracketLabel, 0) : fallbackTeamA;
+  const teamBLabel = match ? formatBracketTeamLabel(teamB, bracketLabel, 1) : fallbackTeamB;
+  const courtLabel = `Court ${match?.court ?? fallbackCourt}`;
   const isDestination = fallbackLabel === "Championship" || fallbackLabel === "3rd Place" || fallbackLabel === "5th Place";
   const nodeClassName = [
     "visual-bracket-node",
@@ -891,7 +904,7 @@ function VisualBracketNode({
   return (
     <article className={nodeClassName} role="listitem">
       <div className="visual-node-meta">
-        <strong>Court {match?.court ?? fallbackCourt}</strong>
+        <strong>{courtLabel}</strong>
         <span>{match?.scheduledTime ?? "TBD"}</span>
       </div>
       <div className="visual-node-label">{match?.label ?? fallbackLabel}</div>
@@ -1125,37 +1138,35 @@ function PublicResultsView({
         <div className="public-results-primary">
           {matches.length > 0 && <PublicNowNextBand courtStatuses={publicCourtStatuses} teamsById={teamsById} />}
 
+          {hasPools && (
+            <details className="public-standings">
+              <summary>
+                <span>Pool standings</span>
+                <small>Optional detail</small>
+              </summary>
+              <PoolsView teams={state.teams} matches={state.matches} />
+            </details>
+          )}
+
           {finalPlacements.length === 9 && <FinalStandingsPanel placements={finalPlacements} />}
 
           <section className="public-section" aria-label="Posted tournament schedule and results">
-        <div className="section-title-row">
-          <h2>Posted Schedule</h2>
-          <span>{matches.length ? `${matches.length} posted${previewMatchCount ? ` + ${previewMatchCount} preview` : ""}` : "Schedule pending"}</span>
-        </div>
-        {matches.length ? (
-          <div className="public-rounds">
-           {postedRounds.map((round) => (
-              <PublicActualRound key={round.round} round={round.round} matches={round.matches} teamsById={teamsById} />
-            ))}
-            {previewRounds.length > 0 && <PublicFlowPreviewSection rounds={previewRounds} />}
-            {hasPublicFinalBracket && <PublicFinalBracketPanel matches={matches} teamsById={teamsById} />}
-          </div>
-        ) : (
-          <EmptyState title="Schedule Not Posted Yet" detail="Tournament staff will post court assignments after pools are generated." />
-        )}
+            <div className="section-title-row">
+              <h2>Posted Schedule</h2>
+              <span>{matches.length ? `${matches.length} posted${previewMatchCount ? ` + ${previewMatchCount} preview` : ""}` : "Schedule pending"}</span>
+            </div>
+            {matches.length ? (
+              <div className="public-rounds">
+                {postedRounds.map((round) => (
+                  <PublicActualRound key={round.round} round={round.round} matches={round.matches} teamsById={teamsById} />
+                ))}
+                {previewRounds.length > 0 && <PublicFlowPreviewSection rounds={previewRounds} />}
+                {hasPublicFinalBracket && <PublicFinalBracketPanel matches={matches} teams={state.teams} teamsById={teamsById} />}
+              </div>
+            ) : (
+              <EmptyState title="Schedule Not Posted Yet" detail="Tournament staff will post court assignments after pools are generated." />
+            )}
           </section>
-        </div>
-
-        <div className="public-results-secondary">
-          {hasPools && (
-        <details className="public-standings">
-          <summary>
-            <span>Pool standings</span>
-            <small>Optional detail</small>
-          </summary>
-          <PoolsView teams={state.teams} matches={state.matches} />
-        </details>
-          )}
         </div>
       </div>
     </main>
@@ -1209,7 +1220,19 @@ function QrCodePage() {
   );
 }
 
-function PublicFinalBracketPanel({ matches, teamsById }: { matches: Match[]; teamsById: Map<string, Team> }) {
+function PublicFinalBracketPanel({ matches, teams, teamsById }: { matches: Match[]; teams: Team[]; teamsById: Map<string, Team> }) {
+  const projectedRoundFiveMatches = generateFinalBracketMatches(teams, matches);
+  const projectedRoundSixMatches = generateRoundSixMatches(teams, matches);
+  const seededTeams = getReseededTeams(teams, matches);
+  const seededTeamLabels = new Map(seededTeams.map((seededTeam) => [seededTeam.seed, `#${seededTeam.seed} ${seededTeam.team.name}`]));
+  const getProjectedMatch = (round: number, court: number) => {
+    const projectedMatches = round === 5 ? projectedRoundFiveMatches : round === 6 ? projectedRoundSixMatches : [];
+    return projectedMatches.find((match) => match.round === round && match.court === court);
+  };
+  const getMatch = (round: number, court: number) =>
+    matches.find((match) => match.round === round && match.court === court) ?? getProjectedMatch(round, court);
+  const getSeedLabel = (seed: number) => seededTeamLabels.get(seed) ?? `#${seed}`;
+
   return (
     <section className="public-final-bracket" aria-labelledby="public-final-bracket-title">
       <div className="public-final-bracket-heading">
@@ -1219,10 +1242,172 @@ function PublicFinalBracketPanel({ matches, teamsById }: { matches: Match[]; tea
         </div>
         <span>Swipe to follow the bracket</span>
       </div>
-      <VisualBracketPanel matches={matches} teamsById={teamsById} showPlaceholders />
+      <div className="public-bracket-scroller" aria-label="Rounds 5 through 7 bracket">
+        <div className="public-bracket-board" role="list">
+          <svg className="public-bracket-lines" viewBox="0 0 1020 700" aria-hidden="true">
+            <path className="public-bracket-line" d="M284 135 H332 V375 H380" />
+            <path className="public-bracket-line" d="M284 295 H332 V215 H380" />
+            <path className="public-bracket-line lower" d="M284 563 H380" />
+            <path className="public-bracket-line" d="M640 215 H688 V295 H736" />
+            <path className="public-bracket-line" d="M640 375 H688 V295 H736" />
+            <path className="public-bracket-line placement" d="M640 215 H688 V455 H736" />
+            <path className="public-bracket-line placement" d="M640 375 H688 V455 H736" />
+          </svg>
+
+          <div className="public-bracket-round public-bracket-r5">Round 5</div>
+          <div className="public-bracket-round public-bracket-r6">Round 6</div>
+          <div className="public-bracket-round public-bracket-r7">Finals</div>
+
+          <PublicBracketNode
+            className="public-slot-r5-c1"
+            match={getMatch(5, 1)}
+            teamsById={teamsById}
+            fallbackLabel="#3 vs #6"
+            pathLabel="Championship feeder"
+            fallbackCourt={1}
+            fallbackTime="12:00 PM"
+            fallbackWork="Century JV"
+          />
+          <PublicBracketNode
+            className="public-slot-r5-c2"
+            match={getMatch(5, 2)}
+            teamsById={teamsById}
+            fallbackLabel="#4 vs #5"
+            pathLabel="Championship feeder"
+            fallbackCourt={2}
+            fallbackTime="12:00 PM"
+            fallbackWork="Century JV"
+          />
+          <PublicBracketNode
+            className="public-slot-r5-c3"
+            match={getMatch(5, 3)}
+            teamsById={teamsById}
+            fallbackLabel="#8 vs #9"
+            pathLabel="Lower bracket"
+            fallbackCourt={3}
+            fallbackTime="12:00 PM"
+            fallbackWork="#7"
+          />
+
+          <PublicBracketNode
+            className="public-slot-r6-c1"
+            match={getMatch(6, 1)}
+            teamsById={teamsById}
+            fallbackLabel="#1 vs Winner #4/#5"
+            fallbackTeamLabels={[getSeedLabel(1), "Winner #4/#5"]}
+            pathLabel="Semifinal"
+            fallbackCourt={1}
+            fallbackTime="1:00 PM"
+            fallbackWork="Century JV"
+          />
+          <PublicBracketNode
+            className="public-slot-r6-c2"
+            match={getMatch(6, 2)}
+            teamsById={teamsById}
+            fallbackLabel="#2 vs Winner #3/#6"
+            fallbackTeamLabels={[getSeedLabel(2), "Winner #3/#6"]}
+            pathLabel="Semifinal"
+            fallbackCourt={2}
+            fallbackTime="1:00 PM"
+            fallbackWork="Century JV"
+          />
+          <PublicBracketNode
+            className="public-slot-r6-c3"
+            match={getMatch(6, 3)}
+            teamsById={teamsById}
+            fallbackLabel="#7 vs Winner #8/#9"
+            fallbackTeamLabels={[getSeedLabel(7), "Winner #8/#9"]}
+            pathLabel="Lower bracket"
+            titleLabel="6th Place"
+            fallbackCourt={3}
+            fallbackTime="1:00 PM"
+            fallbackWork="Loser of Court 3"
+          />
+
+          <PublicBracketNode
+            className="public-slot-r7-c1"
+            match={getMatch(7, 1)}
+            teamsById={teamsById}
+            fallbackLabel="Winner Court 1 vs Winner Court 2"
+            sourceLabel="Winner Court 1 vs Winner Court 2"
+            pathLabel="Championship"
+            fallbackCourt={1}
+            fallbackTime="2:00 PM"
+            fallbackWork="Century JV"
+          />
+          <PublicBracketNode
+            className="public-slot-r7-c2"
+            match={getMatch(7, 2)}
+            teamsById={teamsById}
+            fallbackLabel="Loser Court 2 vs Loser Court 1"
+            sourceLabel="Loser Court 2 vs Loser Court 1"
+            pathLabel="3rd Place"
+            fallbackCourt={2}
+            fallbackTime="2:00 PM"
+            fallbackWork="Century JV"
+          />
+</div>
+      </div>
     </section>
   );
 }
+
+function PublicBracketNode({
+  match,
+  teamsById,
+  fallbackLabel,
+  pathLabel,
+  fallbackCourt,
+  fallbackTime,
+  fallbackWork,
+  fallbackTeamLabels,
+  titleLabel,
+  sourceLabel,
+  className
+}: {
+  match?: Match;
+  teamsById: Map<string, Team>;
+  fallbackLabel: string;
+  pathLabel: string;
+  fallbackCourt: number;
+  fallbackTime: string;
+  fallbackWork: string;
+  fallbackTeamLabels?: [string, string];
+  titleLabel?: string;
+  sourceLabel?: string;
+  className: string;
+}) {
+  const result = match ? getMatchResult(match) : null;
+  const teamA = match ? teamsById.get(match.teamAId) : undefined;
+  const teamB = match ? teamsById.get(match.teamBId) : undefined;
+  const bracketLabel = sourceLabel ?? match?.label ?? fallbackLabel;
+  const [fallbackTeamA, fallbackTeamB] = fallbackTeamLabels ?? getBracketFallbackTeams(bracketLabel);
+  const teamALabel = match ? formatBracketTeamLabel(teamA, bracketLabel, 0) : fallbackTeamA;
+  const teamBLabel = match ? formatBracketTeamLabel(teamB, bracketLabel, 1) : fallbackTeamB;
+  const fallbackTitle = titleLabel ?? (pathLabel === "Championship" || pathLabel === "3rd Place" ? pathLabel : "");
+  const matchTitle = titleLabel ?? (match?.label.match(/\s+vs\s+/i) ? "" : match?.label ?? fallbackTitle);
+  const courtLabel = matchTitle ? `Court ${match?.court ?? fallbackCourt} - ${matchTitle}` : `Court ${match?.court ?? fallbackCourt}`;
+
+  return (
+    <article className={`public-bracket-node ${className} ${result ? "complete" : "pending"}`} role="listitem">
+      <div className="public-bracket-node-meta">
+        <strong>{courtLabel}</strong>
+        <span>{match?.scheduledTime ?? fallbackTime}</span>
+      </div>
+      <div className="public-bracket-node-label">{match?.label ?? pathLabel}</div>
+      <div className="public-bracket-team-row">
+        <span className={result?.winnerId === match?.teamAId ? "winner" : ""}>{teamALabel}</span>
+        <small>{match ? getBracketSetSummary(match, "teamA") : "-"}</small>
+      </div>
+      <div className="public-bracket-team-row">
+        <span className={result?.winnerId === match?.teamBId ? "winner" : ""}>{teamBLabel}</span>
+        <small>{match ? getBracketSetSummary(match, "teamB") : "-"}</small>
+      </div>
+      <div className="public-bracket-work">Work: {match ? getWorkTeamName(match, teamsById) : fallbackWork}</div>
+    </article>
+  );
+}
+
 function PublicFlowPreviewSection({ rounds }: { rounds: PublicPreviewRoundData[] }) {
   const previewMatchCount = rounds.reduce((total, round) => total + round.matches.length, 0);
 
@@ -1411,7 +1596,7 @@ function SetupView({
         </div>
         <div className="action-row">
           <button className="secondary" onClick={onReset}>
-            Reset
+            Reset Tournament
           </button>
           <button onClick={onGenerate}>Generate Pools</button>
         </div>
@@ -1793,11 +1978,22 @@ function getBracketFallbackTeams(label: string): [string, string] {
   return [label, "Opponent TBD"];
 }
 
-function formatBracketTeamLabel(teamName: string, matchLabel: string, sideIndex: 0 | 1): string {
+function formatBracketTeamLabel(team: Team | undefined, matchLabel: string, sideIndex: 0 | 1): string {
   const [seedOrPath] = getBracketFallbackTeams(matchLabel).slice(sideIndex, sideIndex + 1);
-  if (!seedOrPath || seedOrPath === teamName || seedOrPath.toLowerCase().includes("winner")) {
+  const teamName = team?.name ?? (sideIndex === 0 ? "TBD" : "Opponent TBD");
+
+  if (!team) {
+    return seedOrPath || teamName;
+  }
+
+  if (!matchLabel.match(/\s+vs\s+/i)) {
     return teamName;
   }
+
+  if (!seedOrPath || seedOrPath === teamName) {
+    return teamName;
+  }
+
   return `${seedOrPath} ${teamName}`;
 }
 function getBracketSetSummary(match: Match, side: keyof SetScore): string {
