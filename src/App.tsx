@@ -1082,15 +1082,17 @@ function PublicResultsView({
 
       <section className="parent-note">
         <strong>Find your court, then the time.</strong>
-        <span>Scores marked Final are complete. Work teams are helping officiate.</span>
+        <span>Final scores are marked clearly. Work teams are helping officiate.</span>
         <small>Updates automatically about every 15 seconds.</small>
       </section>
 
-      {matches.length > 0 && <PublicNowNextBand courtStatuses={publicCourtStatuses} teamsById={teamsById} />}
+      <div className="public-results-layout">
+        <div className="public-results-primary">
+          {matches.length > 0 && <PublicNowNextBand courtStatuses={publicCourtStatuses} teamsById={teamsById} />}
 
-      {finalPlacements.length === 9 && <FinalStandingsPanel placements={finalPlacements} />}
+          {finalPlacements.length === 9 && <FinalStandingsPanel placements={finalPlacements} />}
 
-      <section className="public-section" aria-label="Posted tournament schedule and results">
+          <section className="public-section" aria-label="Posted tournament schedule and results">
         <div className="section-title-row">
           <h2>Posted Schedule</h2>
           <span>{matches.length ? `${matches.length} posted${previewMatchCount ? ` + ${previewMatchCount} preview` : ""}` : "Schedule pending"}</span>
@@ -1105,9 +1107,11 @@ function PublicResultsView({
         ) : (
           <EmptyState title="Schedule Not Posted Yet" detail="Tournament staff will post court assignments after pools are generated." />
         )}
-      </section>
+          </section>
+        </div>
 
-      {hasPools && (
+        <div className="public-results-secondary">
+          {hasPools && (
         <details className="public-standings">
           <summary>
             <span>Pool standings</span>
@@ -1115,7 +1119,9 @@ function PublicResultsView({
           </summary>
           <PoolsView teams={state.teams} matches={state.matches} />
         </details>
-      )}
+          )}
+        </div>
+      </div>
     </main>
   );
 }
@@ -1246,11 +1252,18 @@ function PublicCourtStatusLine({
 }
 
 function PublicActualRound({ round, matches, teamsById }: { round: number; matches: Match[]; teamsById: Map<string, Team> }) {
+  const completedMatches = matches.filter((match) => getMatchResult(match)).length;
+
   return (
     <article className="round-strip posted-round" key={round}>
       <div className="round-heading">
-        <strong>Round {round}</strong>
-        <span>{matches[0]?.scheduledTime}</span>
+        <div>
+          <strong>Round {round}</strong>
+          <span>{matches[0]?.scheduledTime}</span>
+        </div>
+        <small>
+          {completedMatches}/{matches.length} final
+        </small>
       </div>
       <div className="court-strip">
         {matches.map((match) => (
@@ -1265,8 +1278,11 @@ function PublicPreviewRound({ round }: { round: PublicPreviewRoundData }) {
   return (
     <article className="round-strip flow-preview">
       <div className="round-heading">
-        <strong>Round {round.round}</strong>
-        <span>{round.time}</span>
+        <div>
+          <strong>Round {round.round}</strong>
+          <span>{round.time}</span>
+        </div>
+        <small>Preview</small>
       </div>
       <div className="court-strip">
         {round.matches.map((match) => (
