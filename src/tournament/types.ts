@@ -32,6 +32,7 @@ export interface Match {
 export interface MatchResult {
   winnerId: string;
   loserId: string;
+  isTie: boolean;
   teamASetsWon: number;
   teamBSetsWon: number;
   teamAPoints: number;

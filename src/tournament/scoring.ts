@@ -9,7 +9,8 @@ export function getCompletedSets(sets: SetScore[]): SetScore[] {
 }
 
 export function getMatchResult(match: Match): MatchResult | null {
-  const completedSets = getCompletedSets(match.sets);
+  const requiredSets = match.round <= 3 ? 2 : 3;
+  const completedSets = getCompletedSets(match.sets).slice(0, requiredSets);
   let teamASetsWon = 0;
   let teamBSetsWon = 0;
   let teamAPoints = 0;
@@ -27,18 +28,23 @@ export function getMatchResult(match: Match): MatchResult | null {
       teamBSetsWon += 1;
     }
 
-    if (teamASetsWon === 2 || teamBSetsWon === 2) {
+    if (match.round > 3 && (teamASetsWon === 2 || teamBSetsWon === 2)) {
       break;
     }
   }
 
-  if (teamASetsWon < 2 && teamBSetsWon < 2) {
+  if (match.round <= 3 && completedSets.length < 2) {
+    return null;
+  }
+
+  if (match.round > 3 && teamASetsWon < 2 && teamBSetsWon < 2) {
     return null;
   }
 
   return {
-    winnerId: teamASetsWon > teamBSetsWon ? match.teamAId : match.teamBId,
-    loserId: teamASetsWon > teamBSetsWon ? match.teamBId : match.teamAId,
+    winnerId: teamASetsWon >= teamBSetsWon ? match.teamAId : match.teamBId,
+    loserId: teamASetsWon >= teamBSetsWon ? match.teamBId : match.teamAId,
+    isTie: teamASetsWon === teamBSetsWon,
     teamASetsWon,
     teamBSetsWon,
     teamAPoints,
@@ -49,6 +55,13 @@ export function getMatchResult(match: Match): MatchResult | null {
 export function createEmptySets(): SetScore[] {
   return [
     { teamA: null, teamB: null },
+    { teamA: null, teamB: null },
+    { teamA: null, teamB: null }
+  ];
+}
+
+export function createPoolPlaySets(): SetScore[] {
+  return [
     { teamA: null, teamB: null },
     { teamA: null, teamB: null }
   ];

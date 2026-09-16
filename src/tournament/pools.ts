@@ -1,4 +1,4 @@
-import { createEmptySets } from "./scoring";
+import { createPoolPlaySets } from "./scoring";
 import type { CourtId, Match, PoolId, Team } from "./types";
 
 const poolAssignmentsBySeed: Record<number, PoolId> = {
@@ -85,6 +85,6 @@ function createPoolMatch(round: number, court: CourtId, pool: PoolId, teamA: Tea
     teamBId: teamB.id,
     workTeamId: worker.id,
     scheduledTime: roundTimes[round],
-    sets: createEmptySets()
+    sets: createPoolPlaySets()
   };
 }

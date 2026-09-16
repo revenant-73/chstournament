@@ -1743,7 +1743,7 @@ function ScoresView({ matches, teams, teamsById, isReadOnly, onScoreChange, onMa
               Round {match.round} · Court {match.court}
             </strong>
             <span>
-              {match.scheduledTime} · {match.label}
+              {match.scheduledTime} · {match.label} · {match.round <= 3 ? "Two sets" : "Best 2 of 3"}
             </span>
           </div>
           <ScoreLine
@@ -1847,7 +1847,7 @@ function ScoreLine({ match, team, side, isReadOnly, onScoreChange }: ScoreLinePr
   return (
     <div className={isReadOnly ? "score-line read-only" : "score-line"}>
       <div className="team-name">{team?.name ?? "Unknown team"}</div>
-      {match.sets.map((set, index) => (
+      {match.sets.slice(0, match.round <= 3 ? 2 : 3).map((set, index) => (
         <label key={index}>
           Set {index + 1}
           {isReadOnly ? (
@@ -1873,6 +1873,10 @@ function MatchOutcome({ match, teamsById }: { match: Match; teamsById: Map<strin
     return <p className="match-outcome">Result pending</p>;
   }
 
+  if (result.isTie) {
+    return <p className="match-outcome">Two sets complete · Split sets</p>;
+  }
+
   return <p className="match-outcome">Winner: {teamsById.get(result.winnerId)?.name ?? "TBD"}</p>;
 }
 
@@ -1891,10 +1895,10 @@ function PoolsView({ teams, matches }: { teams: Team[]; matches: Match[] }) {
             <div className="standings-table">
               <div className="table-row table-head">
                 <span>Team</span>
-                <span>Match</span>
-                <span>Sets</span>
-                <span>Set %</span>
-                <span>Point %</span>
+                <span>Set wins</span>
+                <span>Point +/-</span>
+                <span>Points</span>
+                <span>Head-to-head</span>
               </div>
               {standings.map((standing, index) => (
                 <div className="table-row" key={standing.team.id}>
@@ -1902,14 +1906,10 @@ function PoolsView({ teams, matches }: { teams: Team[]; matches: Match[] }) {
                     {pool}
                     {index + 1} {standing.team.name}
                   </span>
-                  <span>
-                    {standing.matchesWon}-{standing.matchesLost}
-                  </span>
-                  <span>
-                    {standing.setsWon}-{standing.setsLost}
-                  </span>
-                  <span>{standing.setPercentage.toFixed(3)}</span>
-                  <span>{standing.pointPercentage.toFixed(3)}</span>
+                  <span>{standing.setsWon}</span>
+                  <span>{formatPointDifferential(standing.pointsScored - standing.pointsAllowed)}</span>
+                  <span>{standing.pointsScored}-{standing.pointsAllowed}</span>
+                  <span>Applied if tied</span>
                 </div>
               ))}
             </div>
@@ -2020,7 +2020,7 @@ function getWorkTeamName(match: Match, teamsById: Map<string, Team>): string {
 }
 
 function getScoreText(match: Match): string {
-  const playedSets = match.sets.filter((set) => set.teamA !== null && set.teamB !== null);
+  const playedSets = match.sets.slice(0, match.round <= 3 ? 2 : 3).filter((set) => set.teamA !== null && set.teamB !== null);
   if (!playedSets.length) {
     return "No score";
   }
@@ -2060,6 +2060,10 @@ function getBracketSetSummary(match: Match, side: keyof SetScore): string {
     .filter((score): score is number => score !== null);
 
   return scores.length ? scores.join(" / ") : "-";
+}
+
+function formatPointDifferential(value: number): string {
+  return value > 0 ? `+${value}` : String(value);
 }
 
 function createEmptyScoreSets(): SetScore[] {

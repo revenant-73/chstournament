@@ -6,7 +6,7 @@ const pools: PoolId[] = ["A", "B", "C"];
 
 export function arePoolPlayMatchesComplete(matches: Match[]): boolean {
   const poolMatches = matches.filter((match) => match.pool && match.round <= 3);
-  return poolMatches.length === 9 && poolMatches.every((match) => getMatchResult(match));
+  return poolMatches.length === 9 && poolMatches.every((match) => getMatchResult(match) !== null);
 }
 
 export function getPoolFinishers(teams: Team[], matches: Match[]): Record<PoolId, Team[]> {

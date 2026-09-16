@@ -40,7 +40,7 @@ describe("initial pool generation", () => {
 });
 
 describe("match scoring", () => {
-  it("automatically determines a best-of-three winner from set scores", () => {
+  it("records exactly two completed pool sets, including split-set matches", () => {
     const teams = generateInitialPools(createDefaultTeams());
     const match = withSets(generateInitialPoolMatches(teams)[0], [
       [25, 18],
@@ -49,30 +49,36 @@ describe("match scoring", () => {
     ]);
 
     expect(getMatchResult(match)).toMatchObject({
-      winnerId: match.teamAId,
-      loserId: match.teamBId,
-      teamASetsWon: 2,
+      isTie: true,
+      teamASetsWon: 1,
       teamBSetsWon: 1,
-      teamAPoints: 61,
-      teamBPoints: 54
+      teamAPoints: 46,
+      teamBPoints: 43
     });
   });
 
-  it("allows extended set scores above target points", () => {
+  it("uses best-of-three scoring for Round 4 and later", () => {
     const teams = generateInitialPools(createDefaultTeams());
-    const match = withSets(generateInitialPoolMatches(teams)[0], [
+    const poolMatches = generateInitialPoolMatches(teams);
+    const match = {
+      ...poolMatches[0],
+      round: 4,
+      pool: undefined,
+      sets: []
+    };
+    const completedMatch = withSets(match, [
       [28, 26],
       [24, 26],
       [17, 15]
     ]);
 
-    expect(getMatchResult(match)?.winnerId).toBe(match.teamAId);
-    expect(getMatchResult(match)?.teamAPoints).toBe(69);
+    expect(getMatchResult(completedMatch)?.winnerId).toBe(match.teamAId);
+    expect(getMatchResult(completedMatch)?.teamAPoints).toBe(69);
   });
 });
 
 describe("pool standings", () => {
-  it("ranks a three-team pool by match record", () => {
+  it("ranks a three-team pool by set wins", () => {
     const teams = generateInitialPools(createDefaultTeams());
     const matches = [
       withSets(generateInitialPoolMatches(teams)[0], [
@@ -94,7 +100,7 @@ describe("pool standings", () => {
     ]);
   });
 
-  it("uses set percentage and point percentage for a three-way tie", () => {
+  it("uses point differential after tied set wins", () => {
     const teams = generateInitialPools(createDefaultTeams());
     const matches = [
       withSets(generateInitialPoolMatches(teams)[0], [
@@ -116,12 +122,10 @@ describe("pool standings", () => {
     const standings = calculatePoolStandings(teams, matches, "A");
 
     expect(standings.map((standing) => standing.team.originalSeed)).toEqual([6, 1, 7]);
-    expect(standings.map((standing) => standing.matchesWon)).toEqual([1, 1, 1]);
-    expect(standings[0].setPercentage).toBeCloseTo(0.6);
-    expect(standings[1].setPercentage).toBeCloseTo(0.5);
+    expect(standings.map((standing) => standing.setsWon)).toEqual([3, 2, 1]);
   });
 
-  it("uses original tournament seed as the final tiebreaker", () => {
+  it("uses head-to-head after tied set wins and point differential", () => {
     const teams = generateInitialPools(createDefaultTeams());
     const matches = [
       withSets(generateInitialPoolMatches(teams)[0], [
@@ -138,9 +142,7 @@ describe("pool standings", () => {
       ])
     ];
 
-    expect(calculatePoolStandings(teams, matches, "A").map((standing) => standing.team.originalSeed)).toEqual([
-      1, 6, 7
-    ]);
+    expect(calculatePoolStandings(teams, matches, "A").map((standing) => standing.team.originalSeed)).toEqual([1, 6, 7]);
   });
 });
 
