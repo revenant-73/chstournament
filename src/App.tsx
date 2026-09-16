@@ -1186,12 +1186,6 @@ function PublicResultsView({
         </div>
       </header>
 
-      <section className="parent-note">
-        <strong>Find your court, then the time.</strong>
-        <span>Final scores are marked clearly. Work teams are helping officiate.</span>
-        <small>Updates automatically about every 15 seconds.</small>
-      </section>
-
       <div className="public-results-layout">
         <div className="public-results-primary">
           {matches.length > 0 && <PublicNowNextBand courtStatuses={publicCourtStatuses} teamsById={teamsById} />}

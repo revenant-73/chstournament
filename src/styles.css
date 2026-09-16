@@ -1910,13 +1910,13 @@ select {
 
 /* Public results: Otto-inspired schedule cards for quick gym lookup. */
 .public-shell {
-  --public-ink: #111827;
-  --public-muted: #64748b;
-  --public-line: #ddd0fb;
+  --public-ink: #06383b;
+  --public-muted: #4d6c70;
+  --public-line: #b9dfde;
   --public-panel: #ffffff;
-  --public-soft: #f7f4fb;
-  --public-accent: #6d0fce;
-  --public-accent-2: #20c7c9;
+  --public-soft: #f1f9f8;
+  --public-accent: #087f82;
+  --public-accent-2: #07999b;
   width: min(1180px, calc(100% - 24px));
   min-height: calc(100vh - 20px);
   border-radius: 8px;
@@ -1997,7 +1997,7 @@ select {
   padding: 11px 14px;
   color: var(--public-ink);
   background: #ffffff;
-  box-shadow: 0 8px 20px rgba(53, 23, 99, 0.06);
+  box-shadow: 0 8px 20px rgba(6, 56, 59, 0.08);
 }
 
 .parent-note span,
@@ -2034,7 +2034,7 @@ select {
   border: 1px solid var(--public-line);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 10px 28px rgba(53, 23, 99, 0.07);
+  box-shadow: 0 10px 28px rgba(6, 56, 59, 0.08);
 }
 
 .public-now-next,
@@ -2066,7 +2066,7 @@ select {
 }
 
 .public-court-status-line {
-  border-top: 1px solid rgba(221, 208, 251, 0.72);
+  border-top: 1px solid rgba(185, 223, 222, 0.9);
   padding-top: 8px;
 }
 
@@ -2088,7 +2088,7 @@ select {
   border-color: var(--public-line);
   padding: 0;
   background: #ffffff;
-  box-shadow: 0 10px 28px rgba(53, 23, 99, 0.06);
+  box-shadow: 0 10px 28px rgba(6, 56, 59, 0.08);
 }
 
 .round-heading {
@@ -2097,7 +2097,7 @@ select {
   border-right: 0;
   border-bottom: 1px solid var(--public-line);
   padding: 16px 18px;
-  background: linear-gradient(90deg, #ffffff, #faf7ff);
+  background: linear-gradient(90deg, #ffffff, #f1f9f8);
 }
 
 .round-heading > div {
@@ -2117,11 +2117,11 @@ select {
 }
 
 .round-heading small {
-  border: 1px solid rgba(109, 15, 206, 0.16);
+  border: 1px solid rgba(8, 127, 130, 0.22);
   border-radius: 8px;
   padding: 6px 10px;
   color: var(--public-accent);
-  background: #f2eafb;
+  background: #e8f5f4;
   font-size: 0.78rem;
   font-weight: 900;
 }
@@ -2143,7 +2143,7 @@ select {
 }
 
 .public-match:nth-child(even) {
-  background: #f7f4fb;
+  background: #f1f9f8;
 }
 
 .round-strip .public-match + .public-match {
@@ -2157,7 +2157,7 @@ select {
 
 .public-court {
   width: fit-content;
-  border: 1px solid rgba(109, 15, 206, 0.2);
+  border: 1px solid rgba(8, 127, 130, 0.26);
   border-radius: 8px;
   padding: 6px 9px;
   color: var(--public-accent);
@@ -2233,7 +2233,7 @@ select {
 
 .flow-preview,
 .preview-match {
-  background: #fbf9ff;
+  background: #f7fbfb;
 }
 
 .flow-note {
@@ -2341,14 +2341,14 @@ select {
     justify-content: space-between;
     border-radius: 8px;
     padding: 8px 9px;
-    background: rgba(109, 15, 206, 0.06);
+    background: rgba(8, 127, 130, 0.07);
     text-align: left;
   }
 
   .public-worker {
     grid-column: auto;
     padding-top: 8px;
-    border-top: 1px solid rgba(221, 208, 251, 0.72);
+    border-top: 1px solid rgba(185, 223, 222, 0.9);
   }
 
   .public-standings .table-row {
@@ -2380,7 +2380,7 @@ select {
   border: 1px solid var(--public-line);
   border-radius: 8px;
   background: #ffffff;
-  box-shadow: 0 10px 28px rgba(53, 23, 99, 0.06);
+  box-shadow: 0 10px 28px rgba(6, 56, 59, 0.08);
 }
 
 .public-final-bracket-heading {
@@ -2390,7 +2390,7 @@ select {
   gap: 12px;
   border-bottom: 1px solid var(--public-line);
   padding: 14px 16px;
-  background: linear-gradient(90deg, #ffffff, #faf7ff);
+  background: linear-gradient(90deg, #ffffff, #f1f9f8);
 }
 
 .public-final-bracket-heading h3,
@@ -2430,7 +2430,7 @@ select {
   --node-width: 276px;
   --round-gap: 88px;
   --row-height: 36px;
-  --line-color: #6d0fce;
+  --line-color: #087f82;
   grid-template-rows: 34px repeat(18, var(--row-height));
   min-width: calc((var(--node-width) * 3) + (var(--round-gap) * 2) + 40px);
   padding: 0 20px 10px;
@@ -2463,7 +2463,7 @@ select {
   padding: 0;
   color: var(--public-ink);
   background: #f8fafc;
-  box-shadow: 0 8px 20px rgba(53, 23, 99, 0.08);
+  box-shadow: 0 8px 20px rgba(6, 56, 59, 0.1);
 }
 
 .public-final-bracket .visual-bracket-node.complete {
@@ -2473,7 +2473,7 @@ select {
 
 .public-final-bracket .visual-bracket-node.pending {
   border-style: solid;
-  background: #fbf9ff;
+  background: #f7fbfb;
 }
 
 .public-final-bracket .visual-node-meta {
@@ -2543,7 +2543,7 @@ select {
 }
 
 .public-final-bracket .bracket-connector.placement {
-  --line-color: rgba(109, 15, 206, 0.46);
+  --line-color: rgba(8, 127, 130, 0.46);
 }
 
 .public-final-bracket .bracket-connector.lower {
@@ -2614,7 +2614,7 @@ select {
 }
 
 .public-final-bracket .bracket-connector.placement {
-  --line-color: rgba(109, 15, 206, 0.38);
+  --line-color: rgba(8, 127, 130, 0.38);
 }
 
 @media (max-width: 760px) {
@@ -2661,7 +2661,7 @@ select {
 }
 
 .public-bracket-line.placement {
-  stroke: rgba(109, 15, 206, 0.45);
+  stroke: rgba(8, 127, 130, 0.45);
   stroke-dasharray: 7 6;
 }
 
@@ -2749,8 +2749,8 @@ select {
   overflow: hidden;
   border: 1px solid var(--public-line);
   border-radius: 8px;
-  background: #fbf9ff;
-  box-shadow: 0 8px 20px rgba(53, 23, 99, 0.08);
+  background: #f7fbfb;
+  box-shadow: 0 8px 20px rgba(6, 56, 59, 0.1);
 }
 
 .public-bracket-node.complete {
