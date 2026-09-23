@@ -20,6 +20,20 @@ import { calculatePoolStandings } from "./standings";
 import type { Match, PoolId, Team } from "./types";
 
 describe("initial pool generation", () => {
+  it("starts with the percentage-based tournament seeding", () => {
+    expect(createDefaultTeams().map((team) => team.name)).toEqual([
+      "Centennial",
+      "Caldera",
+      "McNary",
+      "Sunset",
+      "Lake Oswego",
+      "Ida B. Wells",
+      "Century",
+      "St. Helens",
+      "Lebanon"
+    ]);
+  });
+
   it("assigns teams with the Century 9-team snake pattern", () => {
     const teams = generateInitialPools(createDefaultTeams());
 
@@ -206,8 +220,11 @@ describe("final bracket reseeding", () => {
     expect(areRoundFiveMatchesComplete(matches)).toBe(true);
     expect(roundSixMatches).toHaveLength(3);
     expect(roundSixMatches.map((match) => match.scheduledTime)).toEqual(["1:00 PM", "1:00 PM", "1:00 PM"]);
-    expect(matchSeeds(roundSixMatches[0], teams)).toEqual({ teamA: 1, teamB: 4, workTeam: undefined, workTeamName: "Century JV" });
-    expect(matchSeeds(roundSixMatches[1], teams)).toEqual({ teamA: 2, teamB: 3, workTeam: undefined, workTeamName: "Century JV" });
+    expect(matchSeeds(roundSixMatches[0], teams)).toEqual({ teamA: 1, teamB: 3, workTeam: undefined, workTeamName: "Century JV" });
+    expect(matchSeeds(roundSixMatches[1], teams)).toEqual({ teamA: 2, teamB: 4, workTeam: undefined, workTeamName: "Century JV" });
+    const roundFiveMatches = matches.filter((match) => match.round === 5).sort((a, b) => a.court - b.court);
+    expect(roundSixMatches[0].teamBId).toBe(getMatchResult(roundFiveMatches[0])?.winnerId);
+    expect(roundSixMatches[1].teamBId).toBe(getMatchResult(roundFiveMatches[1])?.winnerId);
     expect(matchSeeds(roundSixMatches[2], teams)).toEqual({ teamA: 7, teamB: 8, workTeam: 9, workTeamName: undefined });
   });
 
@@ -221,7 +238,7 @@ describe("final bracket reseeding", () => {
     expect(roundSevenMatches.map((match) => match.scheduledTime)).toEqual(["2:00 PM", "2:00 PM"]);
     expect(roundSevenMatches.map((match) => match.label)).toEqual(["Championship", "3rd Place"]);
     expect(matchSeeds(roundSevenMatches[0], teams)).toEqual({ teamA: 1, teamB: 2, workTeam: undefined, workTeamName: "Century JV" });
-    expect(matchSeeds(roundSevenMatches[1], teams)).toEqual({ teamA: 3, teamB: 4, workTeam: undefined, workTeamName: "Century JV" });
+    expect(matchSeeds(roundSevenMatches[1], teams)).toEqual({ teamA: 4, teamB: 3, workTeam: undefined, workTeamName: "Century JV" });
   });
 
   it("calculates final 1st through 9th placements after Round 7 scores", () => {

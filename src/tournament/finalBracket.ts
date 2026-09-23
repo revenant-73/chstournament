@@ -93,9 +93,9 @@ export function generateRoundSixMatches(teams: Team[], matches: Match[]): Match[
       "final-round-6-court-1",
       6,
       1,
-      "#1 vs Winner #4/#5",
+      "#1 vs Winner #3/#6",
       seeds.get(1),
-      teamsById.get(courtTwoResult.winnerId),
+      teamsById.get(courtOneResult.winnerId),
       undefined,
       "1:00 PM",
       outsideWorkCrewName
@@ -104,9 +104,9 @@ export function generateRoundSixMatches(teams: Team[], matches: Match[]): Match[
       "final-round-6-court-2",
       6,
       2,
-      "#2 vs Winner #3/#6",
+      "#2 vs Winner #4/#5",
       seeds.get(2),
-      teamsById.get(courtOneResult.winnerId),
+      teamsById.get(courtTwoResult.winnerId),
       undefined,
       "1:00 PM",
       outsideWorkCrewName

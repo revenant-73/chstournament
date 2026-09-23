@@ -601,14 +601,14 @@ button:disabled {
 }
 
 .admin-bar span {
-  color: #627184;
+  color: #aebdc4;
   font-size: 0.76rem;
   font-weight: 900;
   text-transform: uppercase;
 }
 
 .admin-bar strong {
-  color: #061011;
+  color: #f4f7f8;
 }
 .admin-bar a {
   min-height: 44px;
@@ -1076,11 +1076,6 @@ button:disabled {
   grid-row: 10 / span 4;
 }
 
-.slot-r7-c3 {
-  grid-column: 3;
-  grid-row: 15 / span 4;
-}
-
 .visual-node-meta,
 .visual-node-team {
   display: flex;
@@ -1211,16 +1206,16 @@ button:disabled {
   box-shadow: 0 0 16px rgba(230, 200, 95, 0.54);
 }
 
-.c-r5-1-to-r6-2 {
+.c-r5-1-to-r6-1 {
   left: 272px;
   top: 106px;
-  height: 266px;
+  height: 76px;
 }
 
-.c-r5-2-to-r6-1 {
+.c-r5-2-to-r6-2 {
   left: 272px;
-  top: 182px;
-  height: 114px;
+  top: 296px;
+  height: 76px;
 }
 
 .c-r5-3-to-r6-3 {
@@ -1250,33 +1245,6 @@ button:disabled {
   left: 588px;
   top: 372px;
   height: 38px;
-}
-
-.c-r5-1-to-r7-3 {
-  left: 272px;
-  top: 106px;
-}
-
-.c-r5-2-to-r7-3 {
-  left: 272px;
-  top: 296px;
-}
-
-.c-fifth-place-lane {
-  left: 330px;
-  top: 106px;
-  width: 374px;
-  height: 494px;
-  border-left: 2px dashed var(--line-color);
-  border-bottom: 2px dashed var(--line-color);
-}
-
-.c-fifth-place-lane::before {
-  content: none;
-}
-
-.c-fifth-place-lane::after {
-  content: none;
 }
 
 .bracket-grid {
@@ -1552,9 +1520,9 @@ select {
 
 .table-row {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) 64px 64px 70px 78px;
+  grid-template-columns: minmax(150px, 1fr) 72px 80px;
   gap: 8px;
-  min-width: 470px;
+  min-width: 300px;
   padding: 10px 0;
   border-bottom: 1px solid rgba(207, 213, 216, 0.13);
   align-items: center;
@@ -1659,7 +1627,7 @@ select {
   }
 
   .public-standings .table-row {
-    grid-template-columns: minmax(92px, 1fr) 40px 40px 48px 54px;
+    grid-template-columns: minmax(92px, 1fr) 48px 56px;
     gap: 4px;
     min-width: 0;
     font-size: 0.72rem;

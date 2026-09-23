@@ -1,14 +1,15 @@
 import type { Team } from "./types";
 
 const defaultTeamNames = [
-  "Caldera",
   "Centennial",
-  "Lake Oswego",
-  "Lebanon",
+  "Caldera",
   "McNary",
-  "St. Helens",
   "Sunset",
-  "Ida B. Wells"
+  "Lake Oswego",
+  "Ida B. Wells",
+  "Century",
+  "St. Helens",
+  "Lebanon"
 ];
 
 export function createDefaultTeams(): Team[] {

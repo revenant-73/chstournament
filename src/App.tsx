@@ -57,8 +57,8 @@ const publicFlowPreviewRounds = [
     title: "Semifinals and lower bracket",
     note: "Century JV works Courts 1-2. The loser of the noon Court 3 match works Court 3.",
     matches: [
-      { court: 1, label: "#1 vs Winner #4/#5", work: "Century JV" },
-      { court: 2, label: "#2 vs Winner #3/#6", work: "Century JV" },
+      { court: 1, label: "#1 vs Winner #3/#6", work: "Century JV" },
+      { court: 2, label: "#2 vs Winner #4/#5", work: "Century JV" },
       { court: 3, label: "#7 vs Winner #8/#9", work: "Loser of Court 3" }
     ]
   },
@@ -66,11 +66,10 @@ const publicFlowPreviewRounds = [
     round: 7,
     time: "2:00 PM",
     title: "Placement matches",
-    note: "Championship, 3rd place, and 5th place are played at the same time.",
+    note: "Championship and 3rd place are played at the same time. Court 3 has no Round 7 match.",
     matches: [
       { court: 1, label: "Championship", work: "Century JV" },
-      { court: 2, label: "3rd Place", work: "Century JV" },
-      { court: 3, label: "5th Place", work: "Loser of 1:00 match" }
+      { court: 2, label: "3rd Place", work: "Century JV" }
     ]
   }
 ];
@@ -475,7 +474,7 @@ export default function App() {
             <h1>Admin Sign In</h1>
           </div>
           <div className="status-stack">
-            <div className="stage-pill">{state.stage.replace("_", " ")}</div>
+            <div className="stage-pill">{(roundSevenComplete ? "COMPLETE" : state.stage).replace("_", " ")}</div>
             <div className="sync-pill">{syncStatus}</div>
             {lastRemoteUpdate && <div className="sync-time">Updated {new Date(lastRemoteUpdate).toLocaleTimeString()}</div>}
           </div>
@@ -525,7 +524,7 @@ export default function App() {
           <h1>Varsity Tournament Control</h1>
         </div>
         <div className="status-stack">
-          <div className="stage-pill">{state.stage.replace("_", " ")}</div>
+          <div className="stage-pill">{(roundSevenComplete ? "COMPLETE" : state.stage).replace("_", " ")}</div>
           <div className="sync-pill">{syncStatus}</div>
           {lastRemoteUpdate && <div className="sync-time">Updated {new Date(lastRemoteUpdate).toLocaleTimeString()}</div>}
         </div>
@@ -851,7 +850,7 @@ function VisualBracketPanel({
             className="slot-r6-c1 championship-path"
             match={getMatch(6, 1)}
             teamsById={teamsById}
-            fallbackLabel="#1 vs Winner #4/#5"
+            fallbackLabel="#1 vs Winner #3/#6"
             pathLabel="Semifinal"
             fallbackCourt={1}
             fallbackWork="Century JV"
@@ -860,7 +859,7 @@ function VisualBracketPanel({
             className="slot-r6-c2 championship-path"
             match={getMatch(6, 2)}
             teamsById={teamsById}
-            fallbackLabel="#2 vs Winner #3/#6"
+            fallbackLabel="#2 vs Winner #4/#5"
             pathLabel="Semifinal"
             fallbackCourt={2}
             fallbackWork="Century JV"
@@ -893,26 +892,13 @@ function VisualBracketPanel({
             fallbackCourt={2}
             fallbackWork="Century JV"
           />
-          <VisualBracketNode
-            className="slot-r7-c3 placement-destination"
-            match={getMatch(7, 3)}
-            teamsById={teamsById}
-            fallbackLabel="5th Place"
-            pathLabel="Placement match"
-            fallbackCourt={3}
-            fallbackWork="Loser of 1:00 match"
-          />
-
-          <div className="bracket-connector c-r5-1-to-r6-2 elbow down" aria-hidden="true" />
-          <div className="bracket-connector c-r5-2-to-r6-1 elbow up" aria-hidden="true" />
+          <div className="bracket-connector c-r5-1-to-r6-1 elbow down" aria-hidden="true" />
+          <div className="bracket-connector c-r5-2-to-r6-2 elbow down" aria-hidden="true" />
           <div className="bracket-connector c-r5-3-to-r6-3 direct lower" aria-hidden="true" />
           <div className="bracket-connector c-r6-1-to-r7-1 elbow down" aria-hidden="true" />
           <div className="bracket-connector c-r6-2-to-r7-1 elbow up" aria-hidden="true" />
           <div className="bracket-connector c-r6-1-to-r7-2 elbow down placement" aria-hidden="true" />
           <div className="bracket-connector c-r6-2-to-r7-2 elbow down placement" aria-hidden="true" />
-          <div className="bracket-connector c-r5-1-to-r7-3 lane-stub placement" aria-hidden="true" />
-          <div className="bracket-connector c-r5-2-to-r7-3 lane-stub placement" aria-hidden="true" />
-          <div className="bracket-connector c-fifth-place-lane placement" aria-hidden="true" />
         </div>
       </div>
     </section>
@@ -945,7 +931,7 @@ function VisualBracketNode({
   const teamALabel = match ? formatBracketTeamLabel(teamA, bracketLabel, 0) : fallbackTeamA;
   const teamBLabel = match ? formatBracketTeamLabel(teamB, bracketLabel, 1) : fallbackTeamB;
   const courtLabel = `Court ${match?.court ?? fallbackCourt}`;
-  const isDestination = fallbackLabel === "Championship" || fallbackLabel === "3rd Place" || fallbackLabel === "5th Place";
+  const isDestination = fallbackLabel === "Championship" || fallbackLabel === "3rd Place";
   const nodeClassName = [
     "visual-bracket-node",
     className,
@@ -1116,10 +1102,10 @@ function ProgressionPanel({
           {hasRoundSevenMatches
             ? roundSevenComplete
               ? "Final standings are ready."
-              : "Enter all three Round 7 scores to complete final standings."
+              : "Enter both Round 7 scores to complete final standings."
             : hasRoundSixMatches
             ? roundSixComplete
-              ? "Round 6 is complete. Generate the 2:00 PM championship, 3rd place, and 5th place matches."
+              ? "Round 6 is complete. Generate the 2:00 PM championship and 3rd-place matches."
               : "Enter all three Round 6 scores before Round 7 can be generated."
             : hasFinalBracketMatches
             ? roundFiveComplete
@@ -1180,7 +1166,7 @@ function PublicResultsView({
           </div>
         </div>
         <div className="public-status">
-          <strong>{state.stage.replace("_", " ")}</strong>
+          <strong>{(finalPlacements.length === 9 ? "COMPLETE" : state.stage).replace("_", " ")}</strong>
           <span>{getPublicSyncLabel(syncStatus)}</span>
           {lastRemoteUpdate && <span>Updated {new Date(lastRemoteUpdate).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>}
         </div>
@@ -1297,8 +1283,8 @@ function PublicFinalBracketPanel({ matches, teams, teamsById }: { matches: Match
       <div className="public-bracket-scroller" aria-label="Rounds 5 through 7 bracket">
         <div className="public-bracket-board" role="list">
           <svg className="public-bracket-lines" viewBox="0 0 1020 700" aria-hidden="true">
-            <path className="public-bracket-line" d="M284 135 H332 V375 H380" />
-            <path className="public-bracket-line" d="M284 295 H332 V215 H380" />
+            <path className="public-bracket-line" d="M284 135 H332 V215 H380" />
+            <path className="public-bracket-line" d="M284 295 H332 V375 H380" />
             <path className="public-bracket-line lower" d="M284 563 H380" />
             <path className="public-bracket-line" d="M640 215 H688 V295 H736" />
             <path className="public-bracket-line" d="M640 375 H688 V295 H736" />
@@ -1345,8 +1331,8 @@ function PublicFinalBracketPanel({ matches, teams, teamsById }: { matches: Match
             className="public-slot-r6-c1"
             match={getMatch(6, 1)}
             teamsById={teamsById}
-            fallbackLabel="#1 vs Winner #4/#5"
-            fallbackTeamLabels={[getSeedLabel(1), "Winner #4/#5"]}
+            fallbackLabel="#1 vs Winner #3/#6"
+            fallbackTeamLabels={[getSeedLabel(1), "Winner #3/#6"]}
             pathLabel="Semifinal"
             fallbackCourt={1}
             fallbackTime="1:00 PM"
@@ -1356,8 +1342,8 @@ function PublicFinalBracketPanel({ matches, teams, teamsById }: { matches: Match
             className="public-slot-r6-c2"
             match={getMatch(6, 2)}
             teamsById={teamsById}
-            fallbackLabel="#2 vs Winner #3/#6"
-            fallbackTeamLabels={[getSeedLabel(2), "Winner #3/#6"]}
+            fallbackLabel="#2 vs Winner #4/#5"
+            fallbackTeamLabels={[getSeedLabel(2), "Winner #4/#5"]}
             pathLabel="Semifinal"
             fallbackCourt={2}
             fallbackTime="1:00 PM"
@@ -1891,8 +1877,6 @@ function PoolsView({ teams, matches }: { teams: Team[]; matches: Match[] }) {
                 <span>Team</span>
                 <span>Set wins</span>
                 <span>Point +/-</span>
-                <span>Points</span>
-                <span>Head-to-head</span>
               </div>
               {standings.map((standing, index) => (
                 <div className="table-row" key={standing.team.id}>
@@ -1902,8 +1886,6 @@ function PoolsView({ teams, matches }: { teams: Team[]; matches: Match[] }) {
                   </span>
                   <span>{standing.setsWon}</span>
                   <span>{formatPointDifferential(standing.pointsScored - standing.pointsAllowed)}</span>
-                  <span>{standing.pointsScored}-{standing.pointsAllowed}</span>
-                  <span>Applied if tied</span>
                 </div>
               ))}
             </div>
