@@ -1,7 +1,6 @@
 import type { Team } from "./types";
 
 const defaultTeamNames = [
-  "Century",
   "Caldera",
   "Centennial",
   "Lake Oswego",
