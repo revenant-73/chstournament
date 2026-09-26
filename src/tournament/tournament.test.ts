@@ -14,7 +14,7 @@ import {
 } from "./finalBracket";
 import { generateInitialPoolMatches, generateInitialPools } from "./pools";
 import { arePoolPlayMatchesComplete, generateQualifierMatches, getPoolFinishers } from "./qualifiers";
-import { getMatchResult } from "./scoring";
+import { getMatchResult, isPoolPlaySetComplete } from "./scoring";
 import { createDefaultTeams } from "./setup";
 import { calculatePoolStandings } from "./standings";
 import type { Match, PoolId, Team } from "./types";
@@ -71,12 +71,46 @@ describe("match scoring", () => {
     });
   });
 
-  it("uses best-of-three scoring for Round 4 and later", () => {
+  it("requires pool sets to end at 25 with a two-point margin or 27-26 cap", () => {
+    expect(isPoolPlaySetComplete({ teamA: 25, teamB: 23 })).toBe(true);
+    expect(isPoolPlaySetComplete({ teamA: 26, teamB: 24 })).toBe(true);
+    expect(isPoolPlaySetComplete({ teamA: 27, teamB: 26 })).toBe(true);
+    expect(isPoolPlaySetComplete({ teamA: 25, teamB: 24 })).toBe(false);
+    expect(isPoolPlaySetComplete({ teamA: 26, teamB: 23 })).toBe(false);
+    expect(isPoolPlaySetComplete({ teamA: 27, teamB: 25 })).toBe(false);
+  });
+
+  it("does not complete a pool match with an invalid pool set score", () => {
+    const teams = generateInitialPools(createDefaultTeams());
+    const match = withSets(generateInitialPoolMatches(teams)[0], [
+      [25, 24],
+      [25, 20]
+    ]);
+
+    expect(getMatchResult(match)).toBeNull();
+  });
+
+  it("uses one-set scoring for Round 4", () => {
     const teams = generateInitialPools(createDefaultTeams());
     const poolMatches = generateInitialPoolMatches(teams);
     const match = {
       ...poolMatches[0],
       round: 4,
+      pool: undefined,
+      sets: []
+    };
+    const completedMatch = withSets(match, [[25, 23]]);
+
+    expect(getMatchResult(completedMatch)?.winnerId).toBe(match.teamAId);
+    expect(getMatchResult(completedMatch)?.teamAPoints).toBe(25);
+  });
+
+  it("keeps best-of-three scoring for Round 5 and later", () => {
+    const teams = generateInitialPools(createDefaultTeams());
+    const poolMatches = generateInitialPoolMatches(teams);
+    const match = {
+      ...poolMatches[0],
+      round: 5,
       pool: undefined,
       sets: []
     };

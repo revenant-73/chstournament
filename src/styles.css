@@ -1483,6 +1483,10 @@ select {
   font-weight: 900;
 }
 
+.score-rule-error {
+  color: #ffbe55;
+}
+
 .override-panel {
   margin-top: 12px;
   border-top: 1px solid rgba(207, 213, 216, 0.13);

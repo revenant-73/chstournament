@@ -20,7 +20,7 @@ import {
 } from "./tournament/finalBracket";
 import { arePoolPlayMatchesComplete, generateQualifierMatches } from "./tournament/qualifiers";
 import { createDefaultTeams } from "./tournament/setup";
-import { getMatchResult } from "./tournament/scoring";
+import { getMatchResult, getMatchSetCount, isPoolPlaySetComplete } from "./tournament/scoring";
 import { calculatePoolStandings } from "./tournament/standings";
 import type { Match, PoolId, SetScore, Team, TeamStanding, TournamentState } from "./tournament/types";
 
@@ -33,7 +33,7 @@ const publicFlowPreviewRounds = [
     round: 4,
     time: "11:00 AM",
     title: "Qualifier crossovers",
-    note: "Second-place teams play third-place teams. Pool winners work.",
+    note: "Second-place teams play third-place teams. Pool winners work. One set to 25.",
     matches: [
       { court: 1, label: "A2 vs B3", work: "A1" },
       { court: 2, label: "B2 vs C3", work: "B1" },
@@ -1723,7 +1723,7 @@ function ScoresView({ matches, teams, teamsById, isReadOnly, onScoreChange, onMa
               Round {match.round} · Court {match.court}
             </strong>
             <span>
-              {match.scheduledTime} · {match.label} · {match.round <= 3 ? "Two sets" : "Best 2 of 3"}
+              {match.scheduledTime} · {match.label} · {match.round <= 3 ? "Two sets to 25 · Win by 2 · Cap 27" : match.round === 4 ? "One set to 25" : "Best 2 of 3"}
             </span>
           </div>
           <ScoreLine
@@ -1827,7 +1827,7 @@ function ScoreLine({ match, team, side, isReadOnly, onScoreChange }: ScoreLinePr
   return (
     <div className={isReadOnly ? "score-line read-only" : "score-line"}>
       <div className="team-name">{team?.name ?? "Unknown team"}</div>
-      {match.sets.slice(0, match.round <= 3 ? 2 : 3).map((set, index) => (
+      {match.sets.slice(0, getMatchSetCount(match)).map((set, index) => (
         <label key={index}>
           Set {index + 1}
           {isReadOnly ? (
@@ -1837,6 +1837,7 @@ function ScoreLine({ match, team, side, isReadOnly, onScoreChange }: ScoreLinePr
               inputMode="numeric"
               type="number"
               min="0"
+              max={match.round <= 3 ? 27 : undefined}
               value={set[side] ?? ""}
               onChange={(event) => onScoreChange(match.id, index, side, event.target.value)}
             />
@@ -1850,6 +1851,14 @@ function ScoreLine({ match, team, side, isReadOnly, onScoreChange }: ScoreLinePr
 function MatchOutcome({ match, teamsById }: { match: Match; teamsById: Map<string, Team> }) {
   const result = getMatchResult(match);
   if (!result) {
+    const hasInvalidPoolScore =
+      match.round <= 3 &&
+      match.sets.slice(0, 2).some((set) => set.teamA !== null && set.teamB !== null && !isPoolPlaySetComplete(set));
+
+    if (hasInvalidPoolScore) {
+      return <p className="match-outcome score-rule-error">Pool sets must finish 25-0 through 25-23, 26-24, or 27-26.</p>;
+    }
+
     return <p className="match-outcome">Result pending</p>;
   }
 
@@ -1996,7 +2005,7 @@ function getWorkTeamName(match: Match, teamsById: Map<string, Team>): string {
 }
 
 function getScoreText(match: Match): string {
-  const playedSets = match.sets.slice(0, match.round <= 3 ? 2 : 3).filter((set) => set.teamA !== null && set.teamB !== null);
+  const playedSets = match.sets.slice(0, getMatchSetCount(match)).filter((set) => set.teamA !== null && set.teamB !== null);
   if (!playedSets.length) {
     return "No score";
   }

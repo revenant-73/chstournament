@@ -8,9 +8,34 @@ export function getCompletedSets(sets: SetScore[]): SetScore[] {
   return sets.filter(isSetComplete);
 }
 
+export function isPoolPlaySetComplete(set: SetScore): boolean {
+  if (!isSetComplete(set)) {
+    return false;
+  }
+
+  const winningScore = Math.max(set.teamA ?? 0, set.teamB ?? 0);
+  const losingScore = Math.min(set.teamA ?? 0, set.teamB ?? 0);
+
+  return (
+    (winningScore === 25 && losingScore <= 23) ||
+    (winningScore === 26 && losingScore === 24) ||
+    (winningScore === 27 && losingScore === 26)
+  );
+}
+
+export function getMatchSetCount(match: Match): number {
+  if (match.round <= 3) {
+    return 2;
+  }
+
+  return match.round === 4 ? 1 : 3;
+}
+
 export function getMatchResult(match: Match): MatchResult | null {
-  const requiredSets = match.round <= 3 ? 2 : 3;
-  const completedSets = getCompletedSets(match.sets).slice(0, requiredSets);
+  const requiredSets = getMatchSetCount(match);
+  const completedSets = match.sets
+    .filter(match.round <= 3 ? isPoolPlaySetComplete : isSetComplete)
+    .slice(0, requiredSets);
   let teamASetsWon = 0;
   let teamBSetsWon = 0;
   let teamAPoints = 0;
@@ -28,16 +53,16 @@ export function getMatchResult(match: Match): MatchResult | null {
       teamBSetsWon += 1;
     }
 
-    if (match.round > 3 && (teamASetsWon === 2 || teamBSetsWon === 2)) {
+    if (match.round >= 5 && (teamASetsWon === 2 || teamBSetsWon === 2)) {
       break;
     }
   }
 
-  if (match.round <= 3 && completedSets.length < 2) {
+  if (match.round <= 4 && completedSets.length < requiredSets) {
     return null;
   }
 
-  if (match.round > 3 && teamASetsWon < 2 && teamBSetsWon < 2) {
+  if (match.round >= 5 && teamASetsWon < 2 && teamBSetsWon < 2) {
     return null;
   }
 
