@@ -1856,7 +1856,7 @@ function MatchOutcome({ match, teamsById }: { match: Match; teamsById: Map<strin
       match.sets.slice(0, 2).some((set) => set.teamA !== null && set.teamB !== null && !isPoolPlaySetComplete(set));
 
     if (hasInvalidPoolScore) {
-      return <p className="match-outcome score-rule-error">Pool sets must finish 25-0 through 25-23, 26-24, or 27-26.</p>;
+      return <p className="match-outcome score-rule-error">Pool sets must finish 25-0 through 25-23, 26-24, 27-25, or 27-26.</p>;
     }
 
     return <p className="match-outcome">Result pending</p>;

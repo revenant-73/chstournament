@@ -19,7 +19,7 @@ export function isPoolPlaySetComplete(set: SetScore): boolean {
   return (
     (winningScore === 25 && losingScore <= 23) ||
     (winningScore === 26 && losingScore === 24) ||
-    (winningScore === 27 && losingScore === 26)
+    (winningScore === 27 && (losingScore === 25 || losingScore === 26))
   );
 }
 

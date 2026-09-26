@@ -71,13 +71,14 @@ describe("match scoring", () => {
     });
   });
 
-  it("requires pool sets to end at 25 with a two-point margin or 27-26 cap", () => {
+  it("allows normal win-by-two scores through the 27-point cap", () => {
     expect(isPoolPlaySetComplete({ teamA: 25, teamB: 23 })).toBe(true);
     expect(isPoolPlaySetComplete({ teamA: 26, teamB: 24 })).toBe(true);
+    expect(isPoolPlaySetComplete({ teamA: 27, teamB: 25 })).toBe(true);
     expect(isPoolPlaySetComplete({ teamA: 27, teamB: 26 })).toBe(true);
     expect(isPoolPlaySetComplete({ teamA: 25, teamB: 24 })).toBe(false);
     expect(isPoolPlaySetComplete({ teamA: 26, teamB: 23 })).toBe(false);
-    expect(isPoolPlaySetComplete({ teamA: 27, teamB: 25 })).toBe(false);
+    expect(isPoolPlaySetComplete({ teamA: 28, teamB: 26 })).toBe(false);
   });
 
   it("does not complete a pool match with an invalid pool set score", () => {
