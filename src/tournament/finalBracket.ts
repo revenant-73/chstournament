@@ -13,6 +13,7 @@ const outsideWorkCrewName = "Century JV";
 
 export interface FinalPlacement {
   place: number;
+  placeLabel?: string;
   team: Team;
   source: string;
 }
@@ -214,10 +215,10 @@ export function getFinalPlacements(teams: Team[], matches: Match[]): FinalPlacem
     createFinalPlacement(2, teamsById.get(championshipResult.loserId), "Championship runner-up"),
     createFinalPlacement(3, teamsById.get(thirdPlaceResult.winnerId), "3rd-place winner"),
     createFinalPlacement(4, teamsById.get(thirdPlaceResult.loserId), "3rd-place runner-up"),
-    createFinalPlacement(5, teamsById.get(roundSixCourtThreeResult.winnerId), "Round 6 Court 3 winner"),
-    createFinalPlacement(6, teamsById.get(roundSixCourtThreeResult.loserId), "Round 6 Court 3 runner-up"),
-    createFinalPlacement(7, teamsById.get(roundFiveCourtTwoResult.loserId), "#4/#5 match loser"),
-    createFinalPlacement(8, teamsById.get(roundFiveCourtOneResult.loserId), "#3/#6 match loser"),
+    createFinalPlacement(5, teamsById.get(roundFiveCourtOneResult.loserId), "#3/#6 match loser", "Tied for 5th"),
+    createFinalPlacement(5, teamsById.get(roundFiveCourtTwoResult.loserId), "#4/#5 match loser", "Tied for 5th"),
+    createFinalPlacement(7, teamsById.get(roundSixCourtThreeResult.winnerId), "7th-place match winner"),
+    createFinalPlacement(8, teamsById.get(roundSixCourtThreeResult.loserId), "7th-place match runner-up"),
     createFinalPlacement(9, teamsById.get(roundFiveCourtThreeResult.loserId), "#8/#9 match loser")
   ].filter((placement): placement is FinalPlacement => Boolean(placement));
 }
@@ -326,12 +327,12 @@ function getRoundSevenMatches(matches: Match[]): Match[] {
   return matches.filter((match) => match.round === 7).sort((a, b) => a.court - b.court);
 }
 
-function createFinalPlacement(place: number, team: Team | undefined, source: string): FinalPlacement | null {
+function createFinalPlacement(place: number, team: Team | undefined, source: string, placeLabel?: string): FinalPlacement | null {
   if (!team) {
     return null;
   }
 
-  return { place, team, source };
+  return { place, placeLabel, team, source };
 }
 
 

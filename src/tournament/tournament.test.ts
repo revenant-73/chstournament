@@ -276,23 +276,35 @@ describe("final bracket reseeding", () => {
     expect(matchSeeds(roundSevenMatches[1], teams)).toEqual({ teamA: 4, teamB: 3, workTeam: undefined, workTeamName: "Century JV" });
   });
 
-  it("calculates final 1st through 9th placements after Round 7 scores", () => {
+  it("calculates final placements with a tied 5th place after Round 7 scores", () => {
     const teams = generateInitialPools(createDefaultTeams());
     const matches = completedMatchesThroughRoundSeven(teams);
     const placements = getFinalPlacements(teams, matches);
 
     expect(areRoundSevenMatchesComplete(matches)).toBe(true);
     expect(placements).toHaveLength(9);
-    expect(placements.map((placement) => placement.team.originalSeed)).toEqual([1, 2, 3, 4, 7, 8, 5, 6, 9]);
+    expect(placements.map((placement) => placement.team.originalSeed)).toEqual([1, 2, 3, 4, 6, 5, 7, 8, 9]);
+    expect(placements.map((placement) => placement.place)).toEqual([1, 2, 3, 4, 5, 5, 7, 8, 9]);
+    expect(placements.map((placement) => placement.placeLabel)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      "Tied for 5th",
+      "Tied for 5th",
+      undefined,
+      undefined,
+      undefined
+    ]);
     expect(placements.map((placement) => placement.source)).toEqual([
       "Championship winner",
       "Championship runner-up",
       "3rd-place winner",
       "3rd-place runner-up",
-      "Round 6 Court 3 winner",
-      "Round 6 Court 3 runner-up",
-      "#4/#5 match loser",
       "#3/#6 match loser",
+      "#4/#5 match loser",
+      "7th-place match winner",
+      "7th-place match runner-up",
       "#8/#9 match loser"
     ]);
   });
@@ -359,7 +371,7 @@ describe("full tournament simulation", () => {
     expect(roundSevenMatches).toHaveLength(2);
     expect(allMatches).toHaveLength(20);
     expect(allMatches.every((match) => getMatchResult(match))).toBe(true);
-    expect(getFinalPlacements(teams, allMatches).map((placement) => placement.place)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    expect(getFinalPlacements(teams, allMatches).map((placement) => placement.place)).toEqual([1, 2, 3, 4, 5, 5, 7, 8, 9]);
   });
 });
 

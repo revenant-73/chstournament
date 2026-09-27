@@ -1015,7 +1015,7 @@ function ReseedingPanel({
   );
 }
 
-function FinalStandingsPanel({ placements }: { placements: Array<{ place: number; team: Team; source: string }> }) {
+function FinalStandingsPanel({ placements }: { placements: Array<{ place: number; placeLabel?: string; team: Team; source: string }> }) {
   return (
     <section className="final-standings-panel">
       <div className="section-title-row">
@@ -1025,7 +1025,7 @@ function FinalStandingsPanel({ placements }: { placements: Array<{ place: number
       <div className="placement-grid">
         {placements.map((placement) => (
           <article className={placement.place <= 3 ? "placement-card podium" : "placement-card"} key={placement.team.id}>
-            <strong>{formatPlace(placement.place)}</strong>
+            <strong>{placement.placeLabel ?? formatPlace(placement.place)}</strong>
             <span>{placement.team.name}</span>
             <small>{placement.source}</small>
           </article>
@@ -1356,7 +1356,7 @@ function PublicFinalBracketPanel({ matches, teams, teamsById }: { matches: Match
             fallbackLabel="#7 vs Winner #8/#9"
             fallbackTeamLabels={[getSeedLabel(7), "Winner #8/#9"]}
             pathLabel="Lower bracket"
-            titleLabel="6th Place"
+            titleLabel="7th Place"
             fallbackCourt={3}
             fallbackTime="1:00 PM"
             fallbackWork="Loser of Court 3"
